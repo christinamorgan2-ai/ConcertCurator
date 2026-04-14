@@ -21,8 +21,15 @@ export const useDashboardData = () => {
       setLoading(true);
       
       const { data: { user }, error: authErr } = await supabase.auth.getUser();
-      if (authErr || !user) throw new Error('Not authenticated');
-
+      if (authErr || !user) {
+         setData({
+           concerts: [], venues: [], artists: [], genres: [], attendees: [],
+           artistGenreBridge: [], concertArtistBridge: [], concertAttendeeBridge: [],
+           userSettings: { default_country: 'USA', default_attendee_name: 'Me', artist_types: [], ecosystems: [] }
+         });
+         setLoading(false);
+         return;
+      }
       const [
         { data: concerts, error: cErr },
         { data: venues, error: vErr },

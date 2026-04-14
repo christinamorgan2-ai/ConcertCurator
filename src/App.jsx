@@ -64,10 +64,10 @@ function App() {
 
   return (
     <BrowserRouter>
-      <div style={styles.appLayout}>
+      <div className="app-layout">
         <Navigation session={session} />
         
-        <div style={styles.contentArea}>
+        <div className="content-area">
           <Routes>
             <Route path="/" element={<ProtectedRoute session={session}><DashboardPage data={data} /></ProtectedRoute>} />
             <Route path="/login" element={session ? <Navigate to="/" replace /> : <LoginPage />} />
@@ -91,16 +91,6 @@ function App() {
 }
 
 const styles = {
-  appLayout: {
-    display: 'flex',
-    minHeight: '100vh',
-    width: '100%'
-  },
-  contentArea: {
-    marginLeft: '250px',
-    flex: 1,
-    backgroundColor: 'var(--bg-color)'
-  },
   centerContainer: {
     display: 'flex',
     flexDirection: 'column',

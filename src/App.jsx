@@ -69,7 +69,7 @@ function App() {
         
         <div style={styles.contentArea}>
           <Routes>
-            <Route path="/" element={<DashboardPage data={data} />} />
+            <Route path="/" element={<ProtectedRoute session={session}><DashboardPage data={data} /></ProtectedRoute>} />
             <Route path="/login" element={session ? <Navigate to="/" replace /> : <LoginPage />} />
             
             <Route path="/concerts" element={<ProtectedRoute session={session}><ConcertsPage data={data} refreshData={refreshData} /></ProtectedRoute>} />

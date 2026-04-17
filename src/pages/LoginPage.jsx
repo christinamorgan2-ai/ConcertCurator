@@ -2,12 +2,17 @@ import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { UserCircle } from 'lucide-react';
 
-export const LoginPage = () => {
+export const LoginPage = ({ onGuestLogin }) => {
   const [error, setError] = useState(null);
 
   const handleOAuthSignIn = async (provider) => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({ provider });
+      const { error } = await supabase.auth.signInWithOAuth({ 
+        provider,
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
       if (error) throw error;
     } catch (err) {
       setError(err.message || `Failed to authenticate with ${provider}`);
@@ -22,7 +27,7 @@ export const LoginPage = () => {
         </div>
         <h1 style={styles.title}>Welcome to Concert Curator</h1>
         <p style={styles.subtitle}>
-          Sign in or create an account using your preferred provider
+          Sign in or create an account to add and track concerts. Just evaluating? Explore the app in Guest Mode—no account required.
         </p>
 
         {error && <div style={styles.errorBanner}>{error}</div>}
@@ -53,6 +58,21 @@ export const LoginPage = () => {
             Continue with Apple
           </button>
         </div>
+
+        <div style={styles.dividerContainer}>
+          <div style={styles.dividerLine} />
+          <span style={styles.dividerText}>OR</span>
+          <div style={styles.dividerLine} />
+        </div>
+
+        <button 
+          type="button"
+          onClick={onGuestLogin}
+          style={styles.guestBtn}
+        >
+          <UserCircle size={20} style={styles.oauthIcon} />
+          Explore in Guest Mode
+        </button>
       </div>
     </div>
   );
@@ -128,5 +148,37 @@ const styles = {
   },
   oauthIcon: {
     marginRight: '0.75rem'
+  },
+  dividerContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    width: '100%',
+    margin: '1.5rem 0',
+  },
+  dividerLine: {
+    flex: 1,
+    height: '1px',
+    backgroundColor: 'var(--border-color)',
+  },
+  dividerText: {
+    padding: '0 0.75rem',
+    color: 'var(--text-muted)',
+    fontSize: '0.75rem',
+    fontWeight: 'bold',
+  },
+  guestBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    padding: '0.875rem',
+    backgroundColor: '#f5f5f5',
+    color: 'var(--text-primary)',
+    border: '1px solid var(--border-color)',
+    borderRadius: '8px',
+    fontSize: '1rem',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
   }
 };

@@ -3,7 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, ListMusic, MapPin, Mic2, Users, Tags, Settings, LogOut, LogIn, Globe, Menu } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
-export const Navigation = ({ session }) => {
+export const Navigation = ({ session, guestMode, onExitGuestMode }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -21,6 +21,35 @@ export const Navigation = ({ session }) => {
     closeNav();
   }, [location.pathname]);
 
+  const navItem = (to, Icon, label, disabled) => {
+    const content = (
+      <>
+        <Icon size={20} /><span>{label}</span>
+      </>
+    );
+
+    if (disabled) {
+      return (
+        <div 
+          style={{ ...styles.link, ...styles.disabledLink }} 
+          title="Available for authenticated users only. Sign in to access."
+        >
+          {content}
+        </div>
+      );
+    }
+
+    return (
+      <NavLink 
+        to={to} 
+        onClick={closeNav} 
+        style={({ isActive }) => (isActive ? { ...styles.link, ...styles.activeLink } : styles.link)}
+      >
+        {content}
+      </NavLink>
+    );
+  };
+
   return (
     <>
       <button className="mobile-nav-toggle" onClick={toggleNav}>
@@ -35,39 +64,18 @@ export const Navigation = ({ session }) => {
             <h2>Concert Curator</h2>
           </div>
           <div style={styles.menu}>
-            <NavLink to="/" onClick={closeNav} style={({ isActive }) => (isActive ? { ...styles.link, ...styles.activeLink } : styles.link)}>
-              <LayoutDashboard size={20} /><span>Dashboard</span>
-            </NavLink>
-            
-            <NavLink to="/concerts" onClick={closeNav} style={({ isActive }) => (isActive ? { ...styles.link, ...styles.activeLink } : styles.link)}>
-              <ListMusic size={20} /><span>Concerts</span>
-            </NavLink>
-
-            <NavLink to="/venues" onClick={closeNav} style={({ isActive }) => (isActive ? { ...styles.link, ...styles.activeLink } : styles.link)}>
-              <MapPin size={20} /><span>Venues</span>
-            </NavLink>
-
-            <NavLink to="/artists" onClick={closeNav} style={({ isActive }) => (isActive ? { ...styles.link, ...styles.activeLink } : styles.link)}>
-              <Mic2 size={20} /><span>Artists</span>
-            </NavLink>
-
-            <NavLink to="/attendees" onClick={closeNav} style={({ isActive }) => (isActive ? { ...styles.link, ...styles.activeLink } : styles.link)}>
-              <Users size={20} /><span>Attendees</span>
-            </NavLink>
-
-            <NavLink to="/genres" onClick={closeNav} style={({ isActive }) => (isActive ? { ...styles.link, ...styles.activeLink } : styles.link)}>
-              <Tags size={20} /><span>Genres</span>
-            </NavLink>
+            {navItem("/", LayoutDashboard, "Dashboard", guestMode)}
+            {navItem("/concerts", ListMusic, "Concerts", guestMode)}
+            {navItem("/venues", MapPin, "Venues", guestMode)}
+            {navItem("/artists", Mic2, "Artists", guestMode)}
+            {navItem("/attendees", Users, "Attendees", guestMode)}
+            {navItem("/genres", Tags, "Genres", guestMode)}
           </div>
 
           <div style={styles.navGroup}>
             <div style={styles.navHeader}>SYSTEM</div>
-            <NavLink to="/community" onClick={closeNav} style={({ isActive }) => (isActive ? { ...styles.link, ...styles.activeLink } : styles.link)}>
-              <Globe size={20} /><span>Community</span>
-            </NavLink>
-            <NavLink to="/settings" onClick={closeNav} style={({ isActive }) => (isActive ? { ...styles.link, ...styles.activeLink } : styles.link)}>
-              <Settings size={20} /><span>Settings</span>
-            </NavLink>
+            {navItem("/community", Globe, "Community", false)}
+            {navItem("/settings", Settings, "Settings", guestMode)}
           </div>
         </div>
 
@@ -82,7 +90,12 @@ export const Navigation = ({ session }) => {
             </div>
           ) : (
             <div style={styles.profileSection}>
-              <button onClick={() => navigate('/login')} style={styles.actionBtn}>
+              <button onClick={() => {
+                if (guestMode && onExitGuestMode) {
+                  onExitGuestMode();
+                }
+                navigate('/login');
+              }} style={styles.actionBtn}>
                 <LogIn size={16} />
                 <span>Log In</span>
               </button>
@@ -127,6 +140,10 @@ const styles = {
     backgroundColor: '#333333',
     color: '#ffffff',
     fontWeight: '500'
+  },
+  disabledLink: {
+    opacity: 0.5,
+    cursor: 'not-allowed'
   },
   navGroup: {
     marginTop: '2rem',

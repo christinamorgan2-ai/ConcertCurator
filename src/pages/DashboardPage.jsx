@@ -17,7 +17,7 @@ export const DashboardPage = ({ data }) => {
         
         <div style={styles.gridContainer}>
           <div style={styles.fullWidthLayout}>
-            <VenueGeoMap venues={data.venues} />
+            <VenueGeoMap data={data} />
           </div>
           
           <div style={styles.twoColumnLayout}>

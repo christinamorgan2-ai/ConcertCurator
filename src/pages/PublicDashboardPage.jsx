@@ -51,7 +51,7 @@ export const PublicDashboardPage = () => {
 };
 
 const styles = {
-  page: { padding: '2rem', maxWidth: '1400px', margin: '0 auto', width: '100%' },
+  page: { padding: '2rem', maxWidth: '1800px', margin: '0 auto', width: '100%' },
   header: { marginBottom: '2rem' },
   pageTitle: { fontSize: '2rem', fontWeight: 'bold', margin: '0 0 0.5rem 0' },
   pageSubtitle: { margin: 0, color: 'var(--text-muted)' },

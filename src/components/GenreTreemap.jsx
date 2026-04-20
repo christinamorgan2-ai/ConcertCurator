@@ -40,7 +40,7 @@ export const GenreTreemap = ({ data }) => {
     return [];
   }, [concerts, concertArtistBridge, artistGenreBridge, genres]);
 
-  const COLORS = ['#1A1A1A', '#333333', '#4D4D4D', '#666666', '#808080', '#999999'];
+  const COLORS = ['#264653', '#2A9D8F', '#E9C46A', '#F4A261', '#E76F51', '#8AB17D'];
 
   const CustomContent = (props) => {
     const { root, depth, x, y, width, height, index, name, size } = props;
@@ -58,10 +58,40 @@ export const GenreTreemap = ({ data }) => {
             strokeOpacity: 1,
           }}
         />
-        {width > 50 && height > 30 ? (
-          <text x={x + 8} y={y + 18} fill="#fff" fontSize={12} fontWeight={500}>
-            {name}
-          </text>
+        {width > 60 && height > 40 ? (
+          <foreignObject x={x} y={y} width={width} height={height}>
+            <div style={{
+              width: '100%',
+              height: '100%',
+              padding: '8px',
+              boxSizing: 'border-box',
+              color: '#fff',
+              overflow: 'hidden',
+              WebkitFontSmoothing: 'antialiased',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'flex-start'
+            }}>
+              <div style={{ 
+                fontSize: '13px', 
+                fontWeight: 600, 
+                whiteSpace: 'nowrap', 
+                textOverflow: 'ellipsis', 
+                overflow: 'hidden',
+                lineHeight: '1.2'
+              }}>
+                {name}
+              </div>
+              <div style={{ 
+                fontSize: '11px', 
+                opacity: 0.9, 
+                marginTop: '2px',
+                lineHeight: '1.2'
+              }}>
+                {size}
+              </div>
+            </div>
+          </foreignObject>
         ) : null}
       </g>
     );

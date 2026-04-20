@@ -54,7 +54,7 @@ export const TopVenuesChart = ({ data }) => {
                 cursor={{ fill: '#f5f5f5' }}
                 contentStyle={{ borderRadius: '8px', border: '1px solid #E5E5E5', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}
               />
-              <Bar dataKey="concerts" fill="var(--accent-color)" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="concerts" fill="#333333" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         ) : (

@@ -33,7 +33,7 @@ export const DashboardPage = ({ data }) => {
 const styles = {
   page: {
     padding: '2rem',
-    maxWidth: '1400px',
+    maxWidth: '1800px',
     margin: '0 auto',
     width: '100%'
   },

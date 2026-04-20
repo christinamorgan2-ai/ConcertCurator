@@ -15,11 +15,11 @@ export const ArtistsPage = ({ data, refreshData }) => {
   const [formData, setFormData] = useState({ name: '' });
   const [error, setError] = useState(null);
 
-  // Edit State
   const [editingId, setEditingId] = useState(null);
   const [editData, setEditData] = useState({});
   const [editError, setEditError] = useState(null);
   const [genreInput, setGenreInput] = useState('');
+  const [deletingId, setDeletingId] = useState(null);
 
   const userSettings = data.userSettings || {};
   const TIERS = ["Mega", "Large", "Mid", "Cult"];
@@ -179,19 +179,22 @@ export const ArtistsPage = ({ data, refreshData }) => {
   };
 
   const deleteArtist = async (artistId) => {
-    if (!window.confirm("Are you sure you want to permanently delete this artist? They will be wiped from all existing concerts and genres.")) return;
-    
     setLoading(true);
+    setError(null);
     try {
       await supabase.from('concert_artist_bridge').delete().eq('artist_id', artistId);
       await supabase.from('artist_genre_bridge').delete().eq('artist_id', artistId);
       
-      const { error: delErr } = await supabase.from('artists').delete().eq('id', artistId);
+      const { data: deletedRows, error: delErr } = await supabase.from('artists').delete().eq('id', artistId).select();
       if (delErr) throw delErr;
+      if (!deletedRows || deletedRows.length === 0) {
+         throw new Error("Unable to delete. You likely don't have Delete permissions on the Artists table.");
+      }
       
       await refreshData();
     } catch (err) {
-      alert("Error deleting artist: " + err.message);
+      console.error("Delete Error:", err);
+      setError("Error deleting artist: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -238,6 +241,7 @@ export const ArtistsPage = ({ data, refreshData }) => {
               ) : (
                 [...data.artists].sort((a,b) => a.name.localeCompare(b.name)).map(artist => {
                   const isEditing = editingId === artist.id;
+                  const isDeleting = deletingId === artist.id;
                   
                   if (isEditing) {
                     return (
@@ -347,7 +351,7 @@ export const ArtistsPage = ({ data, refreshData }) => {
                   }).filter(Boolean);
                   
                   return (
-                    <tr key={artist.id} style={styles.tr}>
+                    <tr key={artist.id} style={{ ...styles.tr, backgroundColor: isDeleting ? '#fee2e2' : undefined }}>
                       <td style={{...styles.td, fontWeight: '500'}}>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                            <span style={{ fontSize: '1rem' }}>{artist.name} {artist.is_cover_band && <span style={{fontSize: '0.65rem', backgroundColor: '#fef3c7', color: '#d97706', padding: '0.1rem 0.3rem', borderRadius: '4px', verticalAlign: 'middle', marginLeft: '0.3rem'}}>COVER</span>}</span>
@@ -384,12 +388,26 @@ export const ArtistsPage = ({ data, refreshData }) => {
                         )}
                       </td>
                       <td style={{...styles.td, textAlign: 'right', whiteSpace: 'nowrap'}}>
-                        <button onClick={() => startEdit(artist)} style={{...styles.actionBtn, color: 'var(--text-secondary)'}} title="Full Edit">
-                          <Edit2 size={18} />
-                        </button>
-                        <button onClick={() => deleteArtist(artist.id)} disabled={loading} style={{...styles.actionBtn, color: '#d32f2f', marginLeft: '4px'}} title="Delete Artist">
-                          <Trash2 size={18} />
-                        </button>
+                        {isDeleting ? (
+                          <>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#c62828', marginRight: '8px'}}>Confirm?</span>
+                            <button onClick={() => deleteArtist(artist.id)} disabled={loading} style={{...styles.actionBtn, color: '#2e7d32', marginRight: '4px', border: '1px solid #2e7d32'}} title="Yes, Delete">
+                              ✓
+                            </button>
+                            <button onClick={() => setDeletingId(null)} disabled={loading} style={{...styles.actionBtn, color: '#d32f2f', border: '1px solid #d32f2f'}} title="Cancel">
+                              <X size={14} />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button onClick={() => startEdit(artist)} style={{...styles.actionBtn, color: 'var(--text-secondary)'}} title="Full Edit">
+                              <Edit2 size={18} />
+                            </button>
+                            <button onClick={() => setDeletingId(artist.id)} disabled={loading} style={{...styles.actionBtn, color: '#d32f2f', marginLeft: '4px'}} title="Delete Artist">
+                              <Trash2 size={18} />
+                            </button>
+                          </>
+                        )}
                       </td>
                     </tr>
                   );

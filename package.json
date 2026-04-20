@@ -11,13 +11,14 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.102.1",
+    "leaflet": "^1.9.4",
     "lucide-react": "^1.7.0",
     "papaparse": "^5.5.3",
     "prop-types": "^15.8.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.14.0",
-    "react-simple-maps": "^3.0.0",
     "recharts": "^3.8.1"
   },
   "devDependencies": {

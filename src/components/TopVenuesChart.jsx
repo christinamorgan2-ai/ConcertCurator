@@ -41,7 +41,7 @@ export const TopVenuesChart = ({ data }) => {
               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E5E5" />
-              <XAxis type="number" tick={{ fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
+              <XAxis type="number" allowDecimals={false} tick={{ fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
               <YAxis 
                 dataKey="name" 
                 type="category" 

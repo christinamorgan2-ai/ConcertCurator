@@ -4,6 +4,13 @@ import { UserCircle } from 'lucide-react';
 
 export const LoginPage = ({ onGuestLogin }) => {
   const [error, setError] = useState(null);
+  const [message, setMessage] = useState('');
+  
+  // Email Auth State
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleOAuthSignIn = async (provider) => {
     try {
@@ -19,6 +26,27 @@ export const LoginPage = ({ onGuestLogin }) => {
     }
   };
 
+  const handleEmailAuth = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setMessage('');
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        setMessage('Success! Check your email for the confirmation link.');
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      }
+    } catch (err) {
+      setError(err.message || 'Authentication failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div style={styles.container}>
       <div style={styles.card}>
@@ -31,6 +59,41 @@ export const LoginPage = ({ onGuestLogin }) => {
         </p>
 
         {error && <div style={styles.errorBanner}>{error}</div>}
+        {message && <div style={{...styles.errorBanner, backgroundColor: '#e8f5e9', color: '#2e7d32', borderColor: '#c8e6c9'}}>{message}</div>}
+
+        <form onSubmit={handleEmailAuth} style={styles.formContainer}>
+          <input 
+            type="email" 
+            placeholder="Email address" 
+            value={email} 
+            onChange={e => setEmail(e.target.value)}
+            required
+            style={styles.inputField}
+          />
+          <input 
+            type="password" 
+            placeholder="Password" 
+            value={password} 
+            onChange={e => setPassword(e.target.value)}
+            required
+            style={styles.inputField}
+          />
+          <button type="submit" disabled={loading} style={styles.submitBtn}>
+            {loading ? 'Processing...' : (isSignUp ? 'Sign Up' : 'Sign In')}
+          </button>
+          
+          <div style={styles.toggleTextContainer}>
+            <button type="button" onClick={() => setIsSignUp(!isSignUp)} style={styles.toggleBtn}>
+              {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
+            </button>
+          </div>
+        </form>
+
+        <div style={styles.dividerContainer}>
+          <div style={styles.dividerLine} />
+          <span style={styles.dividerText}>OR</span>
+          <div style={styles.dividerLine} />
+        </div>
 
         <div style={styles.oauthContainer}>
           <button 
@@ -45,17 +108,6 @@ export const LoginPage = ({ onGuestLogin }) => {
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
             Continue with Google
-          </button>
-
-          <button 
-            type="button"
-            onClick={() => handleOAuthSignIn('apple')} 
-            style={styles.oauthBtn}
-          >
-            <svg viewBox="0 0 24 24" width="20" height="20" style={styles.oauthIcon}>
-              <path d="M16.365 1.43c0 0-2.049-.155-3.844 1.25-.831.65-1.483 1.547-1.458 2.505 0 0 2.227.026 3.868-1.298.667-.538 1.144-1.343 1.434-2.457zM17.158 5.485c-1.391-.013-3.111.956-4.148.956-1.077 0-2.585-.92-3.882-.92-1.745 0-3.355.955-4.249 2.493-1.808 3.12-.462 7.712 1.3 10.231.867 1.242 1.884 2.617 3.23 2.593 1.306-.025 1.815-.815 3.393-.815 1.577 0 2.036.815 3.417.788 1.405-.026 2.279-1.241 3.118-2.467.973-1.411 1.378-2.775 1.403-2.846-.032-.014-2.667-1.015-2.695-4.07-.027-2.553 2.083-3.791 2.181-3.845-1.196-1.733-3.056-1.96-3.719-2.001z" fill="#000000"/>
-            </svg>
-            Continue with Apple
           </button>
         </div>
 
@@ -93,7 +145,7 @@ const styles = {
     borderRadius: '12px',
     padding: '2.5rem',
     width: '100%',
-    maxWidth: '400px',
+    maxWidth: '430px',
     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
     display: 'flex',
     flexDirection: 'column',
@@ -125,11 +177,49 @@ const styles = {
     marginBottom: '1rem',
     textAlign: 'center'
   },
+  formContainer: {
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.75rem'
+  },
+  inputField: {
+    width: '100%',
+    padding: '0.875rem',
+    borderRadius: '8px',
+    border: '1px solid var(--border-color)',
+    fontSize: '1rem',
+    outline: 'none',
+    boxSizing: 'border-box'
+  },
+  submitBtn: {
+    width: '100%',
+    padding: '0.875rem',
+    backgroundColor: '#333',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '1rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
+  },
+  toggleTextContainer: {
+    textAlign: 'center',
+    marginTop: '0.25rem',
+  },
+  toggleBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#475569',
+    cursor: 'pointer',
+    textDecoration: 'underline',
+    fontSize: '0.875rem'
+  },
   oauthContainer: {
     display: 'flex',
     flexDirection: 'column',
     width: '100%',
-    gap: '0.75rem'
   },
   oauthBtn: {
     display: 'flex',

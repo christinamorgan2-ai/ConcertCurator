@@ -98,11 +98,8 @@ export const VenueGeoMap = ({ data }) => {
             // Calculate ratio between 0 (least concerts) and 1 (most concerts)
             const ratio = maxConcerts > 1 ? (count - 1) / (maxConcerts - 1) : 0;
             
-            // Interpolate color from Blue to Red
-            const r = Math.round(59 + ratio * (239 - 59));
-            const g = Math.round(130 + ratio * (68 - 130));
-            const b = Math.round(246 + ratio * (68 - 246));
-            const markerColor = `rgb(${r}, ${g}, ${b})`;
+            // Use uniform coral color
+            const markerColor = '#E76F51';
             
             // Dynamically scale radius between 6px and 16px
             const markerRadius = 6 + (ratio * 10);
@@ -182,8 +179,8 @@ const styles = {
   },
   mapContainer: {
     width: '100%',
-    aspectRatio: '16/9',
-    minHeight: '450px',
+    aspectRatio: '21/9',
+    minHeight: '350px',
     backgroundColor: '#f9f9f9',
     borderRadius: '8px',
     overflow: 'hidden',

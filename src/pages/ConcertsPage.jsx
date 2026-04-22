@@ -272,8 +272,8 @@ export const ConcertsPage = ({ data, refreshData }) => {
                                 value={artistInput} 
                                 onChange={e => setArtistInput(e.target.value)} 
                                 onKeyDown={handleArtistKeyDown}
-                                style={{...tagStyles.tagInput, minWidth: '60px'}}
-                                placeholder="Add act..."
+                                style={{...tagStyles.tagInput, minWidth: '150px'}}
+                                placeholder="Add act & press Enter..."
                               />
                               <datalist id="edit-artist-suggestions">
                                 {ObjectSort(data.artists, 'name').map(a => <option key={a.id} value={a.name} />)}
@@ -294,8 +294,8 @@ export const ConcertsPage = ({ data, refreshData }) => {
                                 value={attendeeInput} 
                                 onChange={e => setAttendeeInput(e.target.value)} 
                                 onKeyDown={handleAttendeeKeyDown}
-                                style={{...tagStyles.tagInput, minWidth: '60px'}}
-                                placeholder="Add friend..."
+                                style={{...tagStyles.tagInput, minWidth: '160px'}}
+                                placeholder="Add friend & press Enter..."
                               />
                               <datalist id="edit-attendee-suggestions">
                                 {ObjectSort(data.attendees, 'name').map(a => <option key={a.id} value={a.name} />)}

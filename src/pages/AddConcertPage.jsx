@@ -234,7 +234,7 @@ export const AddConcertPage = ({ data, refreshData }) => {
                 onChange={e => setArtistInput(e.target.value)} 
                 onKeyDown={handleArtistKeyDown}
                 style={tagStyles.tagInput}
-                placeholder={selectedArtists.length === 0 ? "Type an artist name and press Enter..." : "Add another act..."}
+                placeholder={selectedArtists.length === 0 ? "Type an artist name and press Enter..." : "Add another act & press Enter..."}
               />
               <datalist id="artist-suggestions">
                 {ObjectSort(data.artists, 'name').map(a => (
@@ -265,7 +265,7 @@ export const AddConcertPage = ({ data, refreshData }) => {
                 onChange={e => setAttendeeInput(e.target.value)} 
                 onKeyDown={handleAttendeeKeyDown}
                 style={tagStyles.tagInput}
-                placeholder="Who went with you?"
+                placeholder="Who went with you? (press Enter)"
               />
               <datalist id="attendee-suggestions">
                 {ObjectSort(data.attendees, 'name').map(a => (

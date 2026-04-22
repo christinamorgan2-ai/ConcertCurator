@@ -2,12 +2,13 @@ import React, { useMemo } from 'react';
 import { Treemap, ResponsiveContainer, Tooltip } from 'recharts';
 
 export const GenreTreemap = ({ data }) => {
-  const { concerts, concertArtistBridge, artistGenreBridge, genres } = data;
+  const { concerts, concertArtistBridge, artistGenreBridge, genres, artists } = data;
 
   const treemapData = useMemo(() => {
     // We want genre frequency based on concerts.
     // Concert -> Artists -> Genres
     const genreCounts = {};
+    const genreArtists = {};
 
     // 1. Get genre mappings for each artist
     const artistToGenres = {};
@@ -18,29 +19,65 @@ export const GenreTreemap = ({ data }) => {
       });
     }
 
-    // 2. Count genres per concert
+    // 2. Count genres per concert and identify associated artists
     if (concertArtistBridge && concertArtistBridge.length > 0) {
       concertArtistBridge.forEach(bridge => {
+        const artist = artists?.find(a => a.id === bridge.ArtistID);
+        const artistName = artist ? artist.name : 'Unknown Artist';
+
         const artistGenres = artistToGenres[bridge.ArtistID] || [];
         artistGenres.forEach(genreId => {
-          if (!genreCounts[genreId]) genreCounts[genreId] = 0;
+          if (!genreCounts[genreId]) {
+            genreCounts[genreId] = 0;
+            genreArtists[genreId] = new Set();
+          }
           genreCounts[genreId] += 1;
+          genreArtists[genreId].add(artistName);
         });
       });
     }
 
     // 3. Format for Recharts
     if (genres && genres.length > 0) {
-      return genres.map(g => ({
-        name: g.Name || g.GenreName || g.Genre || 'Unknown',
-        size: genreCounts[g.GenreID] || 0
-      })).filter(g => g.size > 0).sort((a, b) => b.size - a.size);
+      return genres.map(g => {
+        // Fallback checks for UUID vs mapped keys
+        const id = g.GenreID || g.id;
+        return {
+          name: g.Name || g.GenreName || g.name || 'Unknown',
+          size: genreCounts[id] || 0,
+          artistsList: Array.from(genreArtists[id] || [])
+        };
+      }).filter(g => g.size > 0).sort((a, b) => b.size - a.size);
     }
     
     return [];
-  }, [concerts, concertArtistBridge, artistGenreBridge, genres]);
+  }, [concerts, concertArtistBridge, artistGenreBridge, genres, artists]);
 
-  const COLORS = ['#264653', '#2A9D8F', '#E9C46A', '#F4A261', '#E76F51', '#8AB17D'];
+  const COLORS = ['#2A4B7C', '#5D3A9B', '#1D6660', '#8E3B46', '#A35C2B', '#6C5B7B', '#355C7D', '#4A7C59', '#9B6A6C', '#B47E3E'];
+
+  const GenreTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const dataNode = payload[0].payload;
+      const artistsArr = dataNode.artistsList || [];
+      const displayArtists = artistsArr.slice(0, 10);
+      const remaining = artistsArr.length - displayArtists.length;
+
+      return (
+        <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.98)', border: '1px solid #e2e8f0', padding: '1rem', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 100 }}>
+          <p style={{ margin: '0 0 0.5rem 0', fontWeight: 'bold', fontSize: '1.1rem', color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.25rem' }}>{dataNode.name}</p>
+          <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.85rem', color: '#1e293b' }}><strong>{dataNode.size}</strong> Concert{dataNode.size !== 1 ? 's' : ''}</p>
+          <div style={{ fontSize: '0.8rem', color: '#475569', minWidth: '150px', maxWidth: '250px' }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '0.35rem', color: '#334155' }}>Artists:</div>
+            <ul style={{ margin: 0, paddingLeft: '1.2rem', lineHeight: '1.4' }}>
+              {displayArtists.map((a, i) => <li key={i}>{a}</li>)}
+            </ul>
+            {remaining > 0 && <div style={{ marginTop: '0.4rem', fontStyle: 'italic', fontWeight: 'bold', color: '#64748b' }}>+ {remaining} more</div>}
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
 
   const CustomContent = (props) => {
     const { root, depth, x, y, width, height, index, name, size } = props;
@@ -111,7 +148,7 @@ export const GenreTreemap = ({ data }) => {
               fill="#333"
               content={<CustomContent />}
             >
-              <Tooltip formatter={(value) => [value, 'Concerts']} />
+              <Tooltip content={<GenreTooltip />} />
             </Treemap>
           </ResponsiveContainer>
         ) : (

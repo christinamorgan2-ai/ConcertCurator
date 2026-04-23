@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { Edit2, Save, X, Trash2 } from 'lucide-react';
@@ -14,7 +14,28 @@ export const ConcertsPage = ({ data, refreshData }) => {
   // Custom Edit State for Concerts
   const [editData, setEditData] = useState({});
   const [artistInput, setArtistInput] = useState('');
+  const artistInputRef = useRef(null);
   const [attendeeInput, setAttendeeInput] = useState('');
+  const attendeeInputRef = useRef(null);
+
+  // Auto-focus effects bonded to array growth
+  const prevArtistCount = useRef(editData.selectedArtists?.length || 0);
+  useEffect(() => {
+    const current = editData.selectedArtists?.length || 0;
+    if (current > prevArtistCount.current) {
+      artistInputRef.current?.focus();
+    }
+    prevArtistCount.current = current;
+  }, [editData.selectedArtists]);
+
+  const prevAttendeeCount = useRef(editData.selectedAttendees?.length || 0);
+  useEffect(() => {
+    const current = editData.selectedAttendees?.length || 0;
+    if (current > prevAttendeeCount.current) {
+      attendeeInputRef.current?.focus();
+    }
+    prevAttendeeCount.current = current;
+  }, [editData.selectedAttendees]);
 
   // Deletion State
   const [deletingId, setDeletingId] = useState(null);
@@ -267,6 +288,7 @@ export const ConcertsPage = ({ data, refreshData }) => {
                                 </div>
                               ))}
                               <input 
+                                ref={artistInputRef}
                                 list="edit-artist-suggestions"
                                 type="text" 
                                 value={artistInput} 
@@ -289,6 +311,7 @@ export const ConcertsPage = ({ data, refreshData }) => {
                                 </div>
                               ))}
                               <input 
+                                ref={attendeeInputRef}
                                 list="edit-attendee-suggestions"
                                 type="text" 
                                 value={attendeeInput} 

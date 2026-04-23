@@ -26,6 +26,9 @@ export const VenuesPage = ({ data, refreshData }) => {
     name: '', country: userDefaultCountry, region: '', city: '', lat: '', long: '' 
   });
   
+  const [duplicateVenueWarning, setDuplicateVenueWarning] = useState(false);
+  const [duplicateVenueOverride, setDuplicateVenueOverride] = useState(false);
+  
   // Settings State
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
 
@@ -33,6 +36,8 @@ export const VenuesPage = ({ data, refreshData }) => {
   const [editingId, setEditingId] = useState(null);
   const [editData, setEditData] = useState({});
   const [editError, setEditError] = useState(null);
+  const [duplicateEditWarning, setDuplicateEditWarning] = useState(false);
+  const [duplicateEditOverride, setDuplicateEditOverride] = useState(false);
 
   // Deletion State
   const [deletingId, setDeletingId] = useState(null);
@@ -64,6 +69,17 @@ export const VenuesPage = ({ data, refreshData }) => {
   const handleCreateVenue = async (e) => {
     e.preventDefault();
     if (!formData.name) return;
+
+    // Soft Duplicate Check
+    if (!duplicateVenueOverride) {
+      const cleanName = formData.name.trim().toLowerCase();
+      const collision = data.venues.find(v => v.name.toLowerCase() === cleanName);
+      if (collision) {
+        setDuplicateVenueWarning(true);
+        return; // Halt and wait for user explicitly checking override
+      }
+    }
+
     setLoading(true);
     try {
       const { error } = await supabase.from('venues').insert([{ 
@@ -77,6 +93,8 @@ export const VenuesPage = ({ data, refreshData }) => {
       }]);
       if (error) throw error;
       setFormData({ name: '', country: userDefaultCountry, region: '', city: '', lat: '', long: '' });
+      setDuplicateVenueWarning(false);
+      setDuplicateVenueOverride(false);
       await refreshData();
     } catch (err) {
       alert("Error adding venue: " + err.message);
@@ -97,12 +115,16 @@ export const VenuesPage = ({ data, refreshData }) => {
       lat: v.lat || '',
       long: v.long || ''
     });
+    setDuplicateEditWarning(false);
+    setDuplicateEditOverride(false);
   };
 
   const cancelEdit = () => {
     setEditingId(null);
     setEditData({});
     setEditError(null);
+    setDuplicateEditWarning(false);
+    setDuplicateEditOverride(false);
   };
 
   const deleteVenue = async (venueId) => {
@@ -130,6 +152,17 @@ export const VenuesPage = ({ data, refreshData }) => {
       setEditError("Venue Name is required.");
       return;
     }
+
+    // Soft Duplicate Check
+    if (!duplicateEditOverride) {
+      const cleanName = editData.name.trim().toLowerCase();
+      const collision = data.venues.find(v => v.name.toLowerCase() === cleanName && v.id !== editData.id);
+      if (collision) {
+        setDuplicateEditWarning(true);
+        return; // Halt and wait for user explicitly checking override
+      }
+    }
+
     setLoading(true);
     try {
       const { data: updatedRows, error } = await supabase.from('venues').update({
@@ -175,7 +208,11 @@ export const VenuesPage = ({ data, refreshData }) => {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', width: '100%', marginBottom: '0.5rem' }}>
           <input 
             style={{...styles.inlineInput, flex: 2, minWidth: '150px'}} placeholder="Venue Name *" required
-            value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} 
+            value={formData.name} onChange={e => {
+              setFormData({...formData, name: e.target.value});
+              setDuplicateVenueWarning(false);
+              setDuplicateVenueOverride(false);
+            }} 
           />
           <select 
             style={{...styles.inlineInput, flex: 1, minWidth: '80px', backgroundColor: '#fff'}}
@@ -216,6 +253,17 @@ export const VenuesPage = ({ data, refreshData }) => {
             {loading ? 'Adding...' : 'Add Venue'}
           </button>
         </div>
+
+        {duplicateVenueWarning && (
+          <div style={{ width: '100%', padding: '0.75rem', backgroundColor: '#fff8c4', color: '#856404', borderRadius: '6px', border: '1px solid #ffeeba', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+            <strong>⚠️ Warning:</strong> A venue named "{formData.name}" already exists. 
+            Are you sure you want to create a duplicate? (Tip: Try appending the city, e.g. "{formData.name} ({formData.city || 'City'})").
+            <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <input type="checkbox" id="dupCreateOverride" checked={duplicateVenueOverride} onChange={e => setDuplicateVenueOverride(e.target.checked)} style={{cursor: 'pointer'}} />
+              <label htmlFor="dupCreateOverride" style={{ cursor: 'pointer', fontWeight: '500' }}>Yes, deliberately create a duplicate venue</label>
+            </div>
+          </div>
+        )}
       </form>
 
       {/* Venues Table */}
@@ -253,7 +301,11 @@ export const VenuesPage = ({ data, refreshData }) => {
                         )}
                         <tr style={{ ...styles.tr, backgroundColor: '#f5f8ff' }}>
                         <td style={{...styles.td, width: '30%'}}>
-                          <input style={{...styles.inlineInput, width: '100%', minWidth: '120px'}} value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} />
+                          <input style={{...styles.inlineInput, width: '100%', minWidth: '120px'}} value={editData.name} onChange={e => {
+                            setEditData({...editData, name: e.target.value});
+                            setDuplicateEditWarning(false);
+                            setDuplicateEditOverride(false);
+                          }} />
                         </td>
                         <td style={{...styles.td, width: '14%'}}>
                           <select 
@@ -295,6 +347,17 @@ export const VenuesPage = ({ data, refreshData }) => {
                           </button>
                         </td>
                       </tr>
+                      {duplicateEditWarning && (
+                        <tr>
+                          <td colSpan="7" style={{ padding: '0.75rem', backgroundColor: '#fff8c4', color: '#856404', fontSize: '0.875rem', borderBottom: '1px solid #ffeeba' }}>
+                            <strong>⚠️ Warning:</strong> Another venue named "{editData.name}" already exists elsewhere. 
+                            <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <input type="checkbox" id="dupEditOverride" checked={duplicateEditOverride} onChange={e => setDuplicateEditOverride(e.target.checked)} style={{cursor: 'pointer'}} />
+                              <label htmlFor="dupEditOverride" style={{ cursor: 'pointer', fontWeight: '500' }}>Yes, allow duplicate naming and save</label>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
                       </React.Fragment>
                     )
                   }

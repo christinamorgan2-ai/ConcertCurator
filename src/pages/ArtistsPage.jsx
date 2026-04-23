@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { sharedTableStyles as styles } from './ConcertsPage';
 import { Edit2, Save, X, Trash2 } from 'lucide-react';
@@ -19,7 +19,30 @@ export const ArtistsPage = ({ data, refreshData }) => {
   const [editData, setEditData] = useState({});
   const [editError, setEditError] = useState(null);
   const [genreInput, setGenreInput] = useState('');
+  const genreInputRef = useRef(null);
+  const quickArtistInputRef = useRef(null);
   const [deletingId, setDeletingId] = useState(null);
+
+  // Focus management triggers
+  const prevArtistTotalCount = useRef(data.artists?.length || 0);
+  useEffect(() => {
+    const current = data.artists?.length || 0;
+    if (current > prevArtistTotalCount.current) {
+      setTimeout(() => {
+        quickArtistInputRef.current?.focus();
+      }, 50);
+    }
+    prevArtistTotalCount.current = current;
+  }, [data.artists]);
+
+  const prevGenreCount = useRef(editData.selectedGenres?.length || 0);
+  useEffect(() => {
+    const current = editData.selectedGenres?.length || 0;
+    if (current > prevGenreCount.current) {
+      genreInputRef.current?.focus();
+    }
+    prevGenreCount.current = current;
+  }, [editData.selectedGenres]);
 
   const userSettings = data.userSettings || {};
   const TIERS = ["Mega", "Large", "Mid", "Cult"];
@@ -213,8 +236,10 @@ export const ArtistsPage = ({ data, refreshData }) => {
 
       <form onSubmit={handleSubmit} style={styles.inlineForm}>
         <input
+          ref={quickArtistInputRef}
           style={{ ...styles.inlineInput, flex: 1, maxWidth: '400px' }} placeholder="Add quick artist..." required
           value={formData.name} onChange={e => setFormData({ name: e.target.value })}
+          autoFocus={true}
         />
         <button type="submit" disabled={loading} style={styles.addBtn}>
           {loading ? 'Adding...' : 'Add Artist'}
@@ -301,6 +326,7 @@ export const ArtistsPage = ({ data, refreshData }) => {
                                 </div>
                               ))}
                               <input
+                                ref={genreInputRef}
                                 list="edit-genre-suggestions"
                                 type="text"
                                 value={genreInput}

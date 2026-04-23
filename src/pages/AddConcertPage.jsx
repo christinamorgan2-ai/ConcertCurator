@@ -1,22 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { X } from 'lucide-react';
 
-const ObjectSort = (arr, key) => [...arr].sort((a,b) => (a[key] || '').localeCompare(b[key] || ''));
+const ObjectSort = (arr, key) => [...arr].sort((a, b) => (a[key] || '').localeCompare(b[key] || ''));
 
 const US_STATES = [
-  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", 
-  "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", 
-  "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", 
-  "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", 
+  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+  "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+  "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+  "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
   "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
 ];
 
 const COMMON_COUNTRIES = [
   "USA", "Canada", "UK", "Australia", "New Zealand", "Ireland",
   "Germany", "France", "Spain", "Italy", "Netherlands", "Belgium",
-  "Sweden", "Norway", "Denmark", "Finland", "Japan", "South Korea", 
+  "Sweden", "Norway", "Denmark", "Finland", "Japan", "South Korea",
   "Mexico", "Brazil", "Argentina", "Chile", "South Africa"
 ];
 
@@ -24,22 +24,44 @@ export const AddConcertPage = ({ data, refreshData }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
+
+  const [duplicateVenueWarning, setDuplicateVenueWarning] = useState(false);
+  const [duplicateVenueOverride, setDuplicateVenueOverride] = useState(false);
+
   // Venue States
   const [isNewVenue, setIsNewVenue] = useState(false);
   const userDefaultCountry = data.userSettings?.default_country || 'USA';
-  const [newVenueData, setNewVenueData] = useState({ 
-    name: '', country: userDefaultCountry, region: '', city: '', lat: '', long: '' 
+  const [newVenueData, setNewVenueData] = useState({
+    name: '', country: userDefaultCountry, region: '', city: '', lat: '', long: ''
   });
 
   // Artist Tags State
   const [selectedArtists, setSelectedArtists] = useState([]);
   const [artistInput, setArtistInput] = useState('');
+  const artistInputRef = useRef(null);
 
   // Attendee Tags State
   const defaultAttendeeName = data.userSettings?.default_attendee_name || 'Me';
   const [selectedAttendees, setSelectedAttendees] = useState([defaultAttendeeName]);
   const [attendeeInput, setAttendeeInput] = useState('');
+  const attendeeInputRef = useRef(null);
+
+  // Auto-focus effects bonded to array growth
+  const prevArtistCount = useRef(selectedArtists.length);
+  useEffect(() => {
+    if (selectedArtists.length > prevArtistCount.current) {
+      artistInputRef.current?.focus();
+    }
+    prevArtistCount.current = selectedArtists.length;
+  }, [selectedArtists]);
+
+  const prevAttendeeCount = useRef(selectedAttendees.length);
+  useEffect(() => {
+    if (selectedAttendees.length > prevAttendeeCount.current) {
+      attendeeInputRef.current?.focus();
+    }
+    prevAttendeeCount.current = selectedAttendees.length;
+  }, [selectedAttendees]);
 
   // Primary Concert Form State
   const [formData, setFormData] = useState({
@@ -106,9 +128,21 @@ export const AddConcertPage = ({ data, refreshData }) => {
       // Handle transparent venue creation
       if (isNewVenue) {
         if (!newVenueData.name.trim()) throw new Error("Please provide a name for the new venue.");
+
+        // Soft Duplicate Check
+        if (!duplicateVenueOverride) {
+          const cleanName = newVenueData.name.trim().toLowerCase();
+          const collision = data.venues.find(v => v.name.toLowerCase() === cleanName);
+          if (collision) {
+            setDuplicateVenueWarning(true);
+            setLoading(false);
+            return; // Halt submission and wait for user decision
+          }
+        }
+
         const newVenueId = crypto.randomUUID();
-        const { error: venueError } = await supabase.from('venues').insert([{ 
-          id: newVenueId, 
+        const { error: venueError } = await supabase.from('venues').insert([{
+          id: newVenueId,
           name: newVenueData.name.trim(),
           country: newVenueData.country || null,
           region: newVenueData.region || null,
@@ -143,7 +177,7 @@ export const AddConcertPage = ({ data, refreshData }) => {
         let artistId;
         // Attempt to find existing artist in active cache (case insensitive)
         const match = data.artists.find(a => a.name.toLowerCase() === artistName.toLowerCase());
-        
+
         if (match) {
           artistId = match.id;
         } else {
@@ -161,7 +195,7 @@ export const AddConcertPage = ({ data, refreshData }) => {
       for (const attName of selectedAttendees) {
         let attId;
         const match = data.attendees.find(a => a.name.toLowerCase() === attName.toLowerCase());
-        
+
         if (match) {
           attId = match.id;
         } else {
@@ -199,24 +233,24 @@ export const AddConcertPage = ({ data, refreshData }) => {
       <main style={styles.main}>
         <form onSubmit={handleSubmit} style={styles.formContainer}>
           {error && <div style={styles.errorBanner}>{error}</div>}
-          
+
           <div style={styles.formGroup}>
             <label style={styles.label}>Event Title (Festival/Headliner) <span style={styles.required}>*</span></label>
-            <input 
-              type="text" 
-              name="name" 
-              value={formData.name} 
-              onChange={handleChange} 
-              style={styles.input} 
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              style={styles.input}
               placeholder="e.g. My Chemical Romance or Riot Fest 2024"
             />
           </div>
 
           {/* ARIST TAGGER COMPONENT */}
-          <div style={{...styles.formGroup, padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0'}}>
-            <label style={{...styles.label, display: 'flex', justifyContent: 'space-between'}}>
+          <div style={{ ...styles.formGroup, padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <label style={{ ...styles.label, display: 'flex', justifyContent: 'space-between' }}>
               <span>Artist Lineup <span style={styles.required}>*</span></span>
-              <span style={{ fontSize: '0.75rem', fontWeight: '400' }}>Hit Enter to add multiple acts</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: '400' }}>Hit Enter to add</span>
             </label>
             <div style={tagStyles.tagContainer}>
               {selectedArtists.map(artist => (
@@ -227,11 +261,12 @@ export const AddConcertPage = ({ data, refreshData }) => {
                   </button>
                 </div>
               ))}
-              <input 
+              <input
+                ref={artistInputRef}
                 list="artist-suggestions"
-                type="text" 
-                value={artistInput} 
-                onChange={e => setArtistInput(e.target.value)} 
+                type="text"
+                value={artistInput}
+                onChange={e => setArtistInput(e.target.value)}
                 onKeyDown={handleArtistKeyDown}
                 style={tagStyles.tagInput}
                 placeholder={selectedArtists.length === 0 ? "Type an artist name and press Enter..." : "Add another act & press Enter..."}
@@ -244,25 +279,26 @@ export const AddConcertPage = ({ data, refreshData }) => {
             </div>
           </div>
 
-          <div style={{...styles.formGroup, padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0'}}>
-            <label style={{...styles.label, display: 'flex', justifyContent: 'space-between'}}>
+          <div style={{ ...styles.formGroup, padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <label style={{ ...styles.label, display: 'flex', justifyContent: 'space-between' }}>
               <span>Attendees <span style={styles.required}>*</span></span>
               <span style={{ fontSize: '0.75rem', fontWeight: '400' }}>Hit Enter to add friends</span>
             </label>
-            <div style={{...tagStyles.tagContainer, borderColor: '#cbd5e1'}}>
+            <div style={{ ...tagStyles.tagContainer, borderColor: '#cbd5e1' }}>
               {selectedAttendees.map(att => (
-                <div key={att} style={{...tagStyles.tag, backgroundColor: '#64748b'}}>
+                <div key={att} style={{ ...tagStyles.tag, backgroundColor: '#64748b' }}>
                   <span>{att}</span>
                   <button type="button" onClick={() => removeAttendee(att)} style={tagStyles.tagRemove} title="Remove Attendee">
                     <X size={14} />
                   </button>
                 </div>
               ))}
-              <input 
+              <input
+                ref={attendeeInputRef}
                 list="attendee-suggestions"
-                type="text" 
-                value={attendeeInput} 
-                onChange={e => setAttendeeInput(e.target.value)} 
+                type="text"
+                value={attendeeInput}
+                onChange={e => setAttendeeInput(e.target.value)}
                 onKeyDown={handleAttendeeKeyDown}
                 style={tagStyles.tagInput}
                 placeholder="Who went with you? (press Enter)"
@@ -277,33 +313,33 @@ export const AddConcertPage = ({ data, refreshData }) => {
 
           <div style={styles.formGroup}>
             <label style={styles.label}>Tour Name</label>
-            <input 
-              type="text" 
-              name="tour_name" 
-              value={formData.tour_name} 
-              onChange={handleChange} 
-              style={styles.input} 
+            <input
+              type="text"
+              name="tour_name"
+              value={formData.tour_name}
+              onChange={handleChange}
+              style={styles.input}
               placeholder="e.g. The Black Parade Tour"
             />
           </div>
 
           <div style={styles.rowGroup}>
-            <div style={{...styles.formGroup, flex: 1}}>
+            <div style={{ ...styles.formGroup, flex: 1 }}>
               <label style={styles.label}>Date <span style={styles.required}>*</span></label>
-              <input 
-                type="date" 
-                name="date" 
-                value={formData.date} 
-                onChange={handleChange} 
-                style={styles.input} 
+              <input
+                type="date"
+                name="date"
+                value={formData.date}
+                onChange={handleChange}
+                style={styles.input}
               />
             </div>
 
-            <div style={{...styles.formGroup, flex: 2}}>
+            <div style={{ ...styles.formGroup, flex: 2 }}>
               <label style={styles.label}>Venue <span style={styles.required}>*</span></label>
-              <select 
-                name="venue_id" 
-                value={isNewVenue ? 'NEW' : formData.venue_id} 
+              <select
+                name="venue_id"
+                value={isNewVenue ? 'NEW' : formData.venue_id}
                 onChange={(e) => {
                   if (e.target.value === 'NEW') {
                     setIsNewVenue(true);
@@ -313,7 +349,7 @@ export const AddConcertPage = ({ data, refreshData }) => {
                     setIsNewVenue(false);
                     handleChange(e);
                   }
-                }} 
+                }}
                 style={styles.input}
               >
                 <option value="">Select a venue...</option>
@@ -326,65 +362,80 @@ export const AddConcertPage = ({ data, refreshData }) => {
               {isNewVenue && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem', padding: '1rem', backgroundColor: '#fafafa', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
                   <span style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--text-secondary)' }}>New Venue Details</span>
-                  <input 
-                    type="text" 
-                    placeholder="Venue Name *" 
+                  <input
+                    type="text"
+                    placeholder="Venue Name *"
                     value={newVenueData.name}
-                    onChange={(e) => setNewVenueData({...newVenueData, name: e.target.value})}
+                    onChange={(e) => {
+                      setNewVenueData({ ...newVenueData, name: e.target.value });
+                      setDuplicateVenueWarning(false);
+                      setDuplicateVenueOverride(false);
+                    }}
                     style={styles.input}
                     required
                   />
-                  
+
+                  {duplicateVenueWarning && (
+                    <div style={{ padding: '0.85rem', backgroundColor: '#fff8c4', color: '#856404', borderRadius: '6px', border: '1px solid #ffeeba', fontSize: '0.875rem' }}>
+                      <strong>⚠️ Warning:</strong> A venue named "{newVenueData.name}" already exists in your database.
+                      Are you sure you want to create a duplicate? (Tip: Try appending the city, e.g. "{newVenueData.name} ({newVenueData.city || 'City'})").
+                      <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input type="checkbox" id="dupOverride" checked={duplicateVenueOverride} onChange={e => setDuplicateVenueOverride(e.target.checked)} style={{ cursor: 'pointer' }} />
+                        <label htmlFor="dupOverride" style={{ cursor: 'pointer', fontWeight: '500' }}>Yes, deliberately create a duplicate venue</label>
+                      </div>
+                    </div>
+                  )}
+
                   <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <select 
-                      style={{...styles.input, flex: 1, minWidth: '80px', backgroundColor: '#fff'}}
-                      value={newVenueData.country} onChange={e => setNewVenueData({...newVenueData, country: e.target.value})}
+                    <select
+                      style={{ ...styles.input, flex: 1, minWidth: '80px', backgroundColor: '#fff' }}
+                      value={newVenueData.country} onChange={e => setNewVenueData({ ...newVenueData, country: e.target.value })}
                     >
                       <option value="">Country...</option>
                       {COMMON_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
 
                     {newVenueData.country && newVenueData.country.toUpperCase() === 'USA' ? (
-                      <select 
-                        style={{...styles.input, flex: 1, minWidth: '80px', backgroundColor: '#fff'}}
-                        value={newVenueData.region} onChange={e => setNewVenueData({...newVenueData, region: e.target.value})}
+                      <select
+                        style={{ ...styles.input, flex: 1, minWidth: '80px', backgroundColor: '#fff' }}
+                        value={newVenueData.region} onChange={e => setNewVenueData({ ...newVenueData, region: e.target.value })}
                       >
                         <option value="">State...</option>
                         {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
                     ) : (
-                      <input 
-                        type="text" 
-                        placeholder="Region / State" 
+                      <input
+                        type="text"
+                        placeholder="Region / State"
                         value={newVenueData.region}
-                        onChange={(e) => setNewVenueData({...newVenueData, region: e.target.value})}
-                        style={{...styles.input, flex: 1, minWidth: '80px'}}
+                        onChange={(e) => setNewVenueData({ ...newVenueData, region: e.target.value })}
+                        style={{ ...styles.input, flex: 1, minWidth: '80px' }}
                       />
                     )}
 
-                    <input 
-                      type="text" 
-                      placeholder="City" 
+                    <input
+                      type="text"
+                      placeholder="City"
                       value={newVenueData.city}
-                      onChange={(e) => setNewVenueData({...newVenueData, city: e.target.value})}
-                      style={{...styles.input, flex: 1, minWidth: '80px'}}
+                      onChange={(e) => setNewVenueData({ ...newVenueData, city: e.target.value })}
+                      style={{ ...styles.input, flex: 1, minWidth: '80px' }}
                     />
                   </div>
 
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <input 
+                    <input
                       type="number" step="any"
-                      placeholder="Latitude (Optional)" 
+                      placeholder="Latitude (For Map)"
                       value={newVenueData.lat}
-                      onChange={(e) => setNewVenueData({...newVenueData, lat: e.target.value})}
-                      style={{...styles.input, flex: 1}}
+                      onChange={(e) => setNewVenueData({ ...newVenueData, lat: e.target.value })}
+                      style={{ ...styles.input, flex: 1 }}
                     />
-                    <input 
+                    <input
                       type="number" step="any"
-                      placeholder="Longitude (Optional)" 
+                      placeholder="Longitude (For Map)"
                       value={newVenueData.long}
-                      onChange={(e) => setNewVenueData({...newVenueData, long: e.target.value})}
-                      style={{...styles.input, flex: 1}}
+                      onChange={(e) => setNewVenueData({ ...newVenueData, long: e.target.value })}
+                      style={{ ...styles.input, flex: 1 }}
                     />
                   </div>
                 </div>
@@ -393,12 +444,12 @@ export const AddConcertPage = ({ data, refreshData }) => {
           </div>
 
           <div style={styles.checkboxGroup}>
-            <input 
-              type="checkbox" 
-              id="festival" 
-              name="festival" 
-              checked={formData.festival} 
-              onChange={handleChange} 
+            <input
+              type="checkbox"
+              id="festival"
+              name="festival"
+              checked={formData.festival}
+              onChange={handleChange}
               style={styles.checkbox}
             />
             <label htmlFor="festival" style={styles.checkboxLabel}>This event was a multi-day/multi-stage festival</label>

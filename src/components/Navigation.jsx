@@ -50,6 +50,10 @@ export const Navigation = ({ session, guestMode, onExitGuestMode }) => {
     );
   };
 
+  if (location.pathname === '/login' || location.pathname === '/update-password') {
+    return null;
+  }
+
   return (
     <>
       <button className="mobile-nav-toggle" onClick={toggleNav}>

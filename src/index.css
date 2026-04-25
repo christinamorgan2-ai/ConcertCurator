@@ -214,3 +214,9 @@ a:hover {
     display: none;
   }
 }
+
+@media (max-width: 768px) {
+  .responsive-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

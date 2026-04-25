@@ -209,7 +209,7 @@ export const DashboardPage = ({ data }) => {
                 <VenueGeoMap data={filteredData} />
               </div>
               
-              <div style={styles.twoColumnLayout}>
+              <div className="responsive-grid" style={styles.twoColumnLayout}>
                 <GenreTreemap data={filteredData} />
                 <TopVenuesChart data={filteredData} />
               </div>

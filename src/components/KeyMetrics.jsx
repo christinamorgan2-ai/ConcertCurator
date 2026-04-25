@@ -23,7 +23,7 @@ export const KeyMetrics = ({ data }) => {
   ];
 
   return (
-    <div style={styles.container}>
+    <div className="responsive-grid" style={styles.container}>
       {metrics.map((metric, idx) => (
         <div key={idx} style={styles.card}>
           <div style={styles.iconContainer}>{metric.icon}</div>

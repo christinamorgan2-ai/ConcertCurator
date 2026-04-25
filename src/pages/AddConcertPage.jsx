@@ -261,16 +261,19 @@ export const AddConcertPage = ({ data, refreshData }) => {
                   </button>
                 </div>
               ))}
-              <input
-                ref={artistInputRef}
-                list="artist-suggestions"
-                type="text"
-                value={artistInput}
-                onChange={e => setArtistInput(e.target.value)}
-                onKeyDown={handleArtistKeyDown}
-                style={tagStyles.tagInput}
-                placeholder={selectedArtists.length === 0 ? "Type an artist name and press Enter..." : "Add another act & press Enter..."}
-              />
+              <div style={{ display: 'flex', alignItems: 'center', width: '100%', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
+                <input
+                  ref={artistInputRef}
+                  list="artist-suggestions"
+                  type="text"
+                  value={artistInput}
+                  onChange={e => setArtistInput(e.target.value)}
+                  onKeyDown={handleArtistKeyDown}
+                  style={tagStyles.tagInput}
+                  placeholder={selectedArtists.length === 0 ? "Type an artist name and press Enter..." : "Add another act & press Enter..."}
+                />
+                <button type="button" onClick={(e) => handleArtistKeyDown({ key: 'Enter', preventDefault: () => e.preventDefault() })} style={{ backgroundColor: 'var(--text-primary)', color: 'white', border: 'none', borderRadius: '4px', padding: '0.4rem 0.8rem', cursor: 'pointer', fontWeight: 'bold' }}>Add</button>
+              </div>
               <datalist id="artist-suggestions">
                 {ObjectSort(data.artists, 'name').map(a => (
                   <option key={a.id} value={a.name} />
@@ -293,16 +296,19 @@ export const AddConcertPage = ({ data, refreshData }) => {
                   </button>
                 </div>
               ))}
-              <input
-                ref={attendeeInputRef}
-                list="attendee-suggestions"
-                type="text"
-                value={attendeeInput}
-                onChange={e => setAttendeeInput(e.target.value)}
-                onKeyDown={handleAttendeeKeyDown}
-                style={tagStyles.tagInput}
-                placeholder="Who went with you? (press Enter)"
-              />
+              <div style={{ display: 'flex', alignItems: 'center', width: '100%', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
+                <input
+                  ref={attendeeInputRef}
+                  list="attendee-suggestions"
+                  type="text"
+                  value={attendeeInput}
+                  onChange={e => setAttendeeInput(e.target.value)}
+                  onKeyDown={handleAttendeeKeyDown}
+                  style={tagStyles.tagInput}
+                  placeholder="Who went with you? (press Enter)"
+                />
+                <button type="button" onClick={(e) => handleAttendeeKeyDown({ key: 'Enter', preventDefault: () => e.preventDefault() })} style={{ backgroundColor: 'var(--text-primary)', color: 'white', border: 'none', borderRadius: '4px', padding: '0.4rem 0.8rem', cursor: 'pointer', fontWeight: 'bold' }}>Add</button>
+              </div>
               <datalist id="attendee-suggestions">
                 {ObjectSort(data.attendees, 'name').map(a => (
                   <option key={a.id} value={a.name} />

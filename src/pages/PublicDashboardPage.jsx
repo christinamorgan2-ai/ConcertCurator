@@ -208,22 +208,33 @@ export const PublicDashboardPage = () => {
       </div>
 
       <main>
-        <KeyMetrics data={filteredData} />
-        
-        <div style={styles.gridContainer}>
-          <div style={styles.fullWidthLayout}>
-            <VenueGeoMap data={filteredData} />
+        {data.concerts && data.concerts.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '6rem 2rem', backgroundColor: '#fff', borderRadius: '12px', border: '1px solid var(--border-color)', margin: '2rem 0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+            <h2 style={{ fontSize: '2rem', marginBottom: '1rem', color: 'var(--text-primary)' }}>No Concerts Yet!</h2>
+            <p style={{ fontSize: '1.2rem', color: 'var(--text-secondary)', maxWidth: '600px', margin: '0 auto', lineHeight: '1.6' }}>
+              {data.profile_name} hasn't logged any concerts on their profile yet. Check back later to see their live music journey!
+            </p>
           </div>
-          
-          <div style={styles.twoColumnLayout}>
-            <GenreTreemap data={filteredData} />
-            <TopVenuesChart data={filteredData} />
-          </div>
-          
-          <div style={styles.fullWidthLayout}>
-            <RecentConcertsList data={filteredData} />
-          </div>
-        </div>
+        ) : (
+          <>
+            <KeyMetrics data={filteredData} />
+            
+            <div style={styles.gridContainer}>
+              <div style={styles.fullWidthLayout}>
+                <VenueGeoMap data={filteredData} />
+              </div>
+              
+              <div style={styles.twoColumnLayout}>
+                <GenreTreemap data={filteredData} />
+                <TopVenuesChart data={filteredData} />
+              </div>
+              
+              <div style={styles.fullWidthLayout}>
+                <RecentConcertsList data={filteredData} />
+              </div>
+            </div>
+          </>
+        )}
       </main>
     </div>
   );

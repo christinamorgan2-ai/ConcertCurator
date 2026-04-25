@@ -168,14 +168,19 @@ export const AttendeesPage = ({ data, refreshData }) => {
       )}
 
       <div style={styles.tableContainer}>
-        <table style={styles.table}>
+        <table className="responsive-table" style={styles.table}>
           <thead><tr><th style={styles.th}>Name</th><th style={styles.th}>Concerts Attended With</th><th style={{...styles.th, textAlign: 'right'}}>Actions</th></tr></thead>
           <tbody>
             {data.attendees.length === 0 ? (
               <tr><td colSpan="3" style={styles.emptyCell}>No attendees found.</td></tr>
             ) : (
-              [...data.attendees].sort((a,b) => a.name.localeCompare(b.name)).map(att => {
-                const concertCount = data.concertAttendeeBridge.filter(b => b.attendee_id === att.id).length;
+              [...data.attendees].map(att => ({
+                ...att,
+                concertCount: data.concertAttendeeBridge.filter(b => b.attendee_id === att.id).length
+              }))
+              .sort((a, b) => b.concertCount - a.concertCount || a.name.localeCompare(b.name))
+              .map(att => {
+                const concertCount = att.concertCount;
                 const isEditing = editingId === att.id;
                 const isDeleting = deletingId === att.id;
 
@@ -186,17 +191,17 @@ export const AttendeesPage = ({ data, refreshData }) => {
                         <tr><td colSpan="3" style={{ padding: '0.75rem', backgroundColor: '#ffebee', color: '#c62828', fontSize: '0.875rem' }}>⚠️ {editError}</td></tr>
                       )}
                       <tr style={{ ...styles.tr, backgroundColor: '#f5f8ff' }}>
-                        <td style={{...styles.td, width: '40%'}}>
+                        <td data-label="Name" style={{...styles.td, width: '40%'}}>
                           <input style={{...styles.inlineInput, width: '100%', minWidth: '120px'}} value={editData.name} onChange={e => {
                               setEditData({...editData, name: e.target.value});
                               setDuplicateEditWarning(false);
                               setDuplicateEditOverride(false);
                           }} />
                         </td>
-                        <td style={styles.td}>
+                        <td data-label="Concerts Attended With" style={styles.td}>
                           <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.75rem' }}>Readonly</span>
                         </td>
-                        <td style={{ ...styles.td, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <td data-label="Actions" style={{ ...styles.td, textAlign: 'right', whiteSpace: 'nowrap' }}>
                           <button onClick={saveEdit} disabled={loading} style={{...styles.actionBtn, color: '#2e7d32', marginRight: '4px'}} title="Save">
                             <Save size={18} />
                           </button>
@@ -222,9 +227,9 @@ export const AttendeesPage = ({ data, refreshData }) => {
 
                 return (
                   <tr key={att.id} style={{...styles.tr, backgroundColor: isDeleting ? '#fee2e2' : undefined}}>
-                    <td style={{...styles.td, fontWeight: '500'}}>{att.name}</td>
-                    <td style={styles.td}>{concertCount}</td>
-                    <td style={{ ...styles.td, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <td data-label="Name" style={{...styles.td, fontWeight: '500'}}>{att.name}</td>
+                    <td data-label="Concerts Attended With" style={styles.td}>{concertCount}</td>
+                    <td data-label="Actions" style={{ ...styles.td, textAlign: 'right', whiteSpace: 'nowrap' }}>
                       {isDeleting ? (
                         <>
                           <span style={{fontSize: '0.75rem', fontWeight: 'bold', color: '#c62828', marginRight: '8px'}}>Confirm?</span>

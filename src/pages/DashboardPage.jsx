@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { KeyMetrics } from '../components/KeyMetrics';
 import { VenueGeoMap } from '../components/VenueGeoMap';
 import { GenreTreemap } from '../components/GenreTreemap';
@@ -189,23 +190,36 @@ export const DashboardPage = ({ data }) => {
       </div>
 
       <main>
-        {/* Mount filteredData universally across all child components instead of the raw global store */}
-        <KeyMetrics data={filteredData} />
-        
-        <div style={styles.gridContainer}>
-          <div style={styles.fullWidthLayout}>
-            <VenueGeoMap data={filteredData} />
+        {data.concerts && data.concerts.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '6rem 2rem', backgroundColor: '#fff', borderRadius: '12px', border: '1px solid var(--border-color)', margin: '2rem 0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+            <h2 style={{ fontSize: '2.5rem', marginBottom: '1rem', color: 'var(--text-primary)' }}>Welcome to Concert Curator! 🤘</h2>
+            <p style={{ fontSize: '1.2rem', color: 'var(--text-secondary)', marginBottom: '2.5rem', maxWidth: '600px', margin: '0 auto 2.5rem auto', lineHeight: '1.6' }}>
+              Your live music journey starts here. Log your first concert to unlock your personalized map, deep analytics, and beautiful visualizations.
+            </p>
+            <Link to="/add" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--text-primary)', color: '#fff', padding: '1rem 2.5rem', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', textDecoration: 'none', transition: 'opacity 0.2s' }}>
+              Log Your First Concert
+            </Link>
           </div>
-          
-          <div style={styles.twoColumnLayout}>
-            <GenreTreemap data={filteredData} />
-            <TopVenuesChart data={filteredData} />
-          </div>
-          
-          <div style={styles.fullWidthLayout}>
-            <RecentConcertsList data={filteredData} />
-          </div>
-        </div>
+        ) : (
+          <>
+            <KeyMetrics data={filteredData} />
+            
+            <div style={styles.gridContainer}>
+              <div style={styles.fullWidthLayout}>
+                <VenueGeoMap data={filteredData} />
+              </div>
+              
+              <div style={styles.twoColumnLayout}>
+                <GenreTreemap data={filteredData} />
+                <TopVenuesChart data={filteredData} />
+              </div>
+              
+              <div style={styles.fullWidthLayout}>
+                <RecentConcertsList data={filteredData} />
+              </div>
+            </div>
+          </>
+        )}
       </main>
     </div>
   );

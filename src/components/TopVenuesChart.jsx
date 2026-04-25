@@ -20,10 +20,10 @@ export const TopVenuesChart = ({ data }) => {
       return venues
         .map(v => ({
           name: v.Name || v.VenueName || v.Venue || 'Unknown Venue',
-          concerts: venueCounts[v.VenueID] || 0
+          Concerts: venueCounts[v.VenueID] || 0
         }))
-        .filter(v => v.concerts > 0)
-        .sort((a, b) => b.concerts - a.concerts)
+        .filter(v => v.Concerts > 0)
+        .sort((a, b) => b.Concerts - a.Concerts)
         .slice(0, 10); // Top 10
     }
     return [];
@@ -42,19 +42,19 @@ export const TopVenuesChart = ({ data }) => {
             >
               <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E5E5" />
               <XAxis type="number" allowDecimals={false} tick={{ fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
-              <YAxis 
-                dataKey="name" 
-                type="category" 
-                width={150} 
-                tick={{ fill: 'var(--text-primary)', fontSize: 12 }} 
-                axisLine={false} 
-                tickLine={false} 
+              <YAxis
+                dataKey="name"
+                type="category"
+                width={150}
+                tick={{ fill: 'var(--text-primary)', fontSize: 12 }}
+                axisLine={false}
+                tickLine={false}
               />
-              <Tooltip 
+              <Tooltip
                 cursor={{ fill: '#f5f5f5' }}
                 contentStyle={{ borderRadius: '8px', border: '1px solid #E5E5E5', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}
               />
-              <Bar dataKey="concerts" fill="#333333" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="Concerts" fill="#333333" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         ) : (

@@ -241,7 +241,7 @@ export const ConcertsPage = ({ data, refreshData }) => {
 
       <div style={sharedTableStyles.tableContainer}>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{...sharedTableStyles.table, minWidth: '950px'}}>
+          <table className="responsive-table" style={{...sharedTableStyles.table, minWidth: '950px'}}>
             <thead>
               <tr>
                 <th style={sharedTableStyles.th}>Date</th>
@@ -267,19 +267,19 @@ export const ConcertsPage = ({ data, refreshData }) => {
                       <React.Fragment key={c.id}>
                         {editError && (
                           <tr>
-                            <td colSpan="7" style={{ padding: '0.75rem', backgroundColor: '#ffebee', color: '#c62828', fontSize: '0.875rem', textAlign: 'center', border: '1px solid #c62828' }}>
+                            <td colSpan="8" style={{ padding: '0.75rem', backgroundColor: '#ffebee', color: '#c62828', fontSize: '0.875rem', textAlign: 'center', border: '1px solid #c62828' }}>
                               ⚠️ {editError}
                             </td>
                           </tr>
                         )}
                         <tr style={{ ...sharedTableStyles.tr, backgroundColor: '#f5f8ff' }}>
-                          <td style={{...sharedTableStyles.td, padding: '0.5rem', width: '12%'}}>
+                          <td data-label="Date" style={{...sharedTableStyles.td, padding: '0.5rem', width: '12%'}}>
                             <input type="date" style={{...sharedTableStyles.inlineInput, width: '100%', minWidth: '110px', padding: '0.4rem'}} value={editData.date} onChange={e => setEditData({...editData, date: e.target.value})} />
                           </td>
-                          <td style={{...sharedTableStyles.td, padding: '0.5rem', width: '15%'}}>
+                          <td data-label="Event Title" style={{...sharedTableStyles.td, padding: '0.5rem', width: '15%'}}>
                             <input style={{...sharedTableStyles.inlineInput, width: '100%', minWidth: '100px', padding: '0.4rem'}} placeholder="e.g. Riot Fest" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} />
                           </td>
-                          <td style={{...sharedTableStyles.td, padding: '0.5rem', width: '25%'}}>
+                          <td data-label="Lineup" style={{...sharedTableStyles.td, padding: '0.5rem', width: '25%'}}>
                             <div style={{...tagStyles.tagContainer, minHeight: '30px', padding: '0.2rem'}}>
                               {editData.selectedArtists.map(artist => (
                                 <div key={artist} style={tagStyles.tag}>
@@ -302,7 +302,7 @@ export const ConcertsPage = ({ data, refreshData }) => {
                               </datalist>
                             </div>
                           </td>
-                          <td style={{...sharedTableStyles.td, padding: '0.5rem', width: '15%'}}>
+                          <td data-label="Attendees" style={{...sharedTableStyles.td, padding: '0.5rem', width: '15%'}}>
                             <div style={{...tagStyles.tagContainer, borderColor: '#cbd5e1', minHeight: '30px', padding: '0.2rem'}}>
                               {editData.selectedAttendees.map(att => (
                                 <div key={att} style={{...tagStyles.tag, backgroundColor: '#64748b'}}>
@@ -325,19 +325,19 @@ export const ConcertsPage = ({ data, refreshData }) => {
                               </datalist>
                             </div>
                           </td>
-                          <td style={{...sharedTableStyles.td, padding: '0.5rem', width: '10%'}}>
+                          <td data-label="Tour Name" style={{...sharedTableStyles.td, padding: '0.5rem', width: '10%'}}>
                             <input style={{...sharedTableStyles.inlineInput, width: '100%', minWidth: '70px', padding: '0.4rem'}} placeholder="Tour..." value={editData.tour_name} onChange={e => setEditData({...editData, tour_name: e.target.value})} />
                           </td>
-                          <td style={{...sharedTableStyles.td, padding: '0.5rem', width: '15%'}}>
+                          <td data-label="Venue" style={{...sharedTableStyles.td, padding: '0.5rem', width: '15%'}}>
                             <select style={{...sharedTableStyles.inlineInput, width: '100%', minWidth: '90px', backgroundColor: '#fff', padding: '0.4rem'}} value={editData.venue_id} onChange={e => setEditData({...editData, venue_id: e.target.value})}>
                               <option value="">Select venue...</option>
                               {ObjectSort(data.venues, 'name').map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
                             </select>
                           </td>
-                          <td style={{...sharedTableStyles.td, padding: '0.5rem', width: '6%', textAlign: 'center'}}>
+                          <td data-label="Festival" style={{...sharedTableStyles.td, padding: '0.5rem', width: '6%', textAlign: 'center'}}>
                             <input type="checkbox" checked={editData.festival} onChange={e => setEditData({...editData, festival: e.target.checked})} style={{ width: '16px', height: '16px', accentColor: 'var(--accent-color)', cursor: 'pointer' }} />
                           </td>
-                          <td style={{...sharedTableStyles.td, padding: '0.5rem', width: '7%', textAlign: 'right', whiteSpace: 'nowrap'}}>
+                          <td data-label="Actions" style={{...sharedTableStyles.td, padding: '0.5rem', width: '7%', textAlign: 'right', whiteSpace: 'nowrap'}}>
                             <button onClick={saveEdit} disabled={loading} style={{...sharedTableStyles.actionBtn, color: '#2e7d32', marginRight: '4px'}} title="Save">
                               <Save size={18} />
                             </button>
@@ -366,18 +366,18 @@ export const ConcertsPage = ({ data, refreshData }) => {
 
                   return (
                     <tr key={c.id} style={{...sharedTableStyles.tr, backgroundColor: isDeleting ? '#fee2e2' : undefined}}>
-                      <td style={sharedTableStyles.td}>{c.date}</td>
-                      <td style={{...sharedTableStyles.td, fontWeight: '500'}}>{c.name}</td>
-                      <td style={sharedTableStyles.td}>
+                      <td data-label="Date" style={sharedTableStyles.td}>{c.date}</td>
+                      <td data-label="Event Title" style={{...sharedTableStyles.td, fontWeight: '500'}}>{c.name}</td>
+                      <td data-label="Lineup" style={sharedTableStyles.td}>
                         {lineup ? <span style={{ color: '#3b82f6', fontWeight: '500'}}>{lineup}</span> : <span style={{color: '#94a3b8', fontStyle: 'italic'}}>No artists</span>}
                       </td>
-                      <td style={sharedTableStyles.td}>
+                      <td data-label="Attendees" style={sharedTableStyles.td}>
                         {attendeeList ? <span style={{ color: '#64748b', fontWeight: '500'}}>{attendeeList}</span> : <span style={{color: '#94a3b8', fontStyle: 'italic'}}>No attendees</span>}
                       </td>
-                      <td style={sharedTableStyles.td}>{c.tour_name || '-'}</td>
-                      <td style={sharedTableStyles.td}>{venue ? venue.name : 'Unknown'}</td>
-                      <td style={sharedTableStyles.td}>{c.festival ? 'Yes' : 'No'}</td>
-                      <td style={{...sharedTableStyles.td, textAlign: 'right', whiteSpace: 'nowrap'}}>
+                      <td data-label="Tour Name" style={sharedTableStyles.td}>{c.tour_name || '-'}</td>
+                      <td data-label="Venue" style={sharedTableStyles.td}>{venue ? venue.name : 'Unknown'}</td>
+                      <td data-label="Festival" style={sharedTableStyles.td}>{c.festival ? 'Yes' : 'No'}</td>
+                      <td data-label="Actions" style={{...sharedTableStyles.td, textAlign: 'right', whiteSpace: 'nowrap'}}>
                         {isDeleting ? (
                           <>
                             <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#c62828', marginRight: '8px'}}>Confirm?</span>

@@ -142,3 +142,75 @@ a:hover {
     display: block;
   }
 }
+
+/* Responsive Table as Cards */
+@media (max-width: 768px) {
+  table.responsive-table {
+    border: 0;
+    min-width: auto !important;
+  }
+  table.responsive-table thead {
+    display: none;
+  }
+  table.responsive-table tr {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+  table.responsive-table td {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.75rem 0;
+    text-align: left;
+    width: 100% !important; 
+  }
+  table.responsive-table td:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+  table.responsive-table td::before {
+    content: attr(data-label);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+  }
+}
+
+/* Floating Action Button (FAB) */
+.fab {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 1000;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: var(--text-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  border: none;
+  cursor: pointer;
+  transition: transform 0.1s ease-out;
+}
+
+.fab:active {
+  transform: scale(0.92);
+}
+
+@media (min-width: 769px) {
+  .fab {
+    display: none;
+  }
+}

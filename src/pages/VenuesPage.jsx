@@ -269,7 +269,7 @@ export const VenuesPage = ({ data, refreshData }) => {
       {/* Venues Table */}
       <div style={styles.tableContainer}>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{...styles.table, minWidth: '800px'}}>
+          <table className="responsive-table" style={{...styles.table, minWidth: '800px'}}>
             <thead>
               <tr>
                 <th style={styles.th}>Name</th>
@@ -300,14 +300,14 @@ export const VenuesPage = ({ data, refreshData }) => {
                           </tr>
                         )}
                         <tr style={{ ...styles.tr, backgroundColor: '#f5f8ff' }}>
-                        <td style={{...styles.td, width: '30%'}}>
+                        <td data-label="Name" style={{...styles.td, width: '30%'}}>
                           <input style={{...styles.inlineInput, width: '100%', minWidth: '120px'}} value={editData.name} onChange={e => {
                             setEditData({...editData, name: e.target.value});
                             setDuplicateEditWarning(false);
                             setDuplicateEditOverride(false);
                           }} />
                         </td>
-                        <td style={{...styles.td, width: '14%'}}>
+                        <td data-label="Country" style={{...styles.td, width: '14%'}}>
                           <select 
                             style={{...styles.inlineInput, width: '100%', minWidth: '70px', backgroundColor: '#fff'}}
                             value={editData.country} onChange={e => setEditData({...editData, country: e.target.value})}
@@ -316,7 +316,7 @@ export const VenuesPage = ({ data, refreshData }) => {
                             {COMMON_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
                           </select>
                         </td>
-                        <td style={{...styles.td, width: '14%'}}>
+                        <td data-label="Region/State" style={{...styles.td, width: '14%'}}>
                           {editData.country && editData.country.toUpperCase() === 'USA' ? (
                             <select 
                               style={{...styles.inlineInput, width: '100%', minWidth: '70px', backgroundColor: '#fff'}}
@@ -329,16 +329,16 @@ export const VenuesPage = ({ data, refreshData }) => {
                             <input style={{...styles.inlineInput, width: '100%', minWidth: '70px'}} value={editData.region} onChange={e => setEditData({...editData, region: e.target.value})} />
                           )}
                         </td>
-                        <td style={{...styles.td, width: '14%'}}>
+                        <td data-label="City" style={{...styles.td, width: '14%'}}>
                           <input style={{...styles.inlineInput, width: '100%', minWidth: '70px'}} value={editData.city} onChange={e => setEditData({...editData, city: e.target.value})} />
                         </td>
-                        <td style={{...styles.td, width: '10%'}}>
+                        <td data-label="Latitude" style={{...styles.td, width: '10%'}}>
                           <input style={{...styles.inlineInput, width: '100%', minWidth: '60px'}} type="number" step="any" value={editData.lat} onChange={e => setEditData({...editData, lat: e.target.value})} />
                         </td>
-                        <td style={{...styles.td, width: '10%'}}>
+                        <td data-label="Longitude" style={{...styles.td, width: '10%'}}>
                           <input style={{...styles.inlineInput, width: '100%', minWidth: '60px'}} type="number" step="any" value={editData.long} onChange={e => setEditData({...editData, long: e.target.value})} />
                         </td>
-                        <td style={{...styles.td, width: '8%', textAlign: 'right', whiteSpace: 'nowrap'}}>
+                        <td data-label="Actions" style={{...styles.td, width: '8%', textAlign: 'right', whiteSpace: 'nowrap'}}>
                           <button onClick={saveEdit} disabled={loading} style={{...styles.actionBtn, color: '#2e7d32', marginRight: '8px'}} title="Save">
                             <Save size={18} />
                           </button>
@@ -364,13 +364,13 @@ export const VenuesPage = ({ data, refreshData }) => {
 
                   return (
                     <tr key={v.id} style={{ ...styles.tr, backgroundColor: isDeleting ? '#fee2e2' : undefined }}>
-                      <td style={{...styles.td, fontWeight: '500'}}>{v.name}</td>
-                      <td style={styles.td}>{v.country || '-'}</td>
-                      <td style={styles.td}>{v.region || '-'}</td>
-                      <td style={styles.td}>{v.city || '-'}</td>
-                      <td style={styles.td}>{v.lat || '-'}</td>
-                      <td style={styles.td}>{v.long || '-'}</td>
-                      <td style={{...styles.td, textAlign: 'right', whiteSpace: 'nowrap'}}>
+                      <td data-label="Name" style={{...styles.td, fontWeight: '500'}}>{v.name}</td>
+                      <td data-label="Country" style={styles.td}>{v.country || '-'}</td>
+                      <td data-label="Region/State" style={styles.td}>{v.region || '-'}</td>
+                      <td data-label="City" style={styles.td}>{v.city || '-'}</td>
+                      <td data-label="Latitude" style={styles.td}>{v.lat || '-'}</td>
+                      <td data-label="Longitude" style={styles.td}>{v.long || '-'}</td>
+                      <td data-label="Actions" style={{...styles.td, textAlign: 'right', whiteSpace: 'nowrap'}}>
                         {isDeleting ? (
                           <>
                             <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#c62828', marginRight: '8px'}}>Confirm?</span>

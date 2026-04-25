@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Tooltip, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -28,6 +28,14 @@ export const VenueGeoMap = ({ data }) => {
   const venues = data?.venues || [];
   const concerts = data?.concerts || [];
   const mapRef = useRef(null);
+  
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize(); // Initialize
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Maintain performance by memoizing parsed valid venues
   const validVenues = useMemo(() => {
@@ -76,7 +84,9 @@ export const VenueGeoMap = ({ data }) => {
         <MapContainer 
           center={[39.8283, -98.5795]} 
           zoom={4} 
-          scrollWheelZoom={true} 
+          scrollWheelZoom={!isMobile} 
+          dragging={!isMobile}
+          tap={!isMobile}
           style={{ width: '100%', height: '100%', zIndex: 0 }}
           ref={mapRef}
         >

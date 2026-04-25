@@ -248,7 +248,7 @@ export const ArtistsPage = ({ data, refreshData }) => {
 
       <div style={styles.tableContainer}>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ ...styles.table, minWidth: '1100px' }}>
+          <table className="responsive-table" style={{ ...styles.table, minWidth: '1100px' }}>
             <thead>
               <tr>
                 <th style={styles.th}>Artist</th>
@@ -279,7 +279,7 @@ export const ArtistsPage = ({ data, refreshData }) => {
                           </tr>
                         )}
                         <tr style={{ ...styles.tr, backgroundColor: '#f5f8ff' }}>
-                          <td style={{ ...styles.td, padding: '0.75rem', width: '20%' }}>
+                          <td data-label="Artist" style={{ ...styles.td, padding: '0.75rem', width: '20%' }}>
                             <input
                               style={{ ...styles.inlineInput, width: '100%', minWidth: '120px', padding: '0.4rem', marginBottom: '0.4rem' }}
                               placeholder="Artist Name"
@@ -297,7 +297,7 @@ export const ArtistsPage = ({ data, refreshData }) => {
                               onChange={e => setEditData({ ...editData, first_album_year: e.target.value })}
                             />
                           </td>
-                          <td style={{ ...styles.td, padding: '0.75rem', width: '15%' }}>
+                          <td data-label="Primary Genre" style={{ ...styles.td, padding: '0.75rem', width: '15%' }}>
                             <select
                               style={{ ...styles.inlineInput, width: '100%', backgroundColor: '#fff', padding: '0.4rem' }}
                               value={editData.primary_genre_id}
@@ -317,7 +317,7 @@ export const ArtistsPage = ({ data, refreshData }) => {
                               {ObjectSort(data.genres, 'name').map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                             </select>
                           </td>
-                          <td style={{ ...styles.td, padding: '0.75rem', width: '20%' }}>
+                          <td data-label="All Genres" style={{ ...styles.td, padding: '0.75rem', width: '20%' }}>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', padding: '0.3rem', border: '1px solid var(--border-color)', borderRadius: '4px', backgroundColor: '#fff', minHeight: '35px' }}>
                               {editData.selectedGenres.map(g => (
                                 <div key={g} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.2rem 0.4rem', backgroundColor: '#8b5cf6', color: '#fff', borderRadius: '4px', fontSize: '0.7rem' }}>
@@ -335,12 +335,13 @@ export const ArtistsPage = ({ data, refreshData }) => {
                                 style={{ flex: 1, minWidth: '160px', border: 'none', outline: 'none', fontSize: '0.8rem', backgroundColor: 'transparent' }}
                                 placeholder="Add genre & press Enter..."
                               />
+                              <button type="button" onClick={(e) => handleGenreKeyDown({ key: 'Enter', preventDefault: () => e.preventDefault() })} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', color: 'var(--text-secondary)' }}>+</button>
                               <datalist id="edit-genre-suggestions">
                                 {ObjectSort(data.genres, 'name').map(g => <option key={g.id} value={g.name} />)}
                               </datalist>
                             </div>
                           </td>
-                          <td style={{ ...styles.td, padding: '0.75rem', width: '15%' }}>
+                          <td data-label="Demographics" style={{ ...styles.td, padding: '0.75rem', width: '15%' }}>
                             <select style={{ ...styles.inlineInput, width: '100%', padding: '0.3rem', marginBottom: '0.3rem' }} value={editData.tier} onChange={e => setEditData({ ...editData, tier: e.target.value })}>
                               <option value="">Select Tier</option>
                               {TIERS.map(t => <option key={t} value={t}>{t}</option>)}
@@ -354,7 +355,7 @@ export const ArtistsPage = ({ data, refreshData }) => {
                               {(userSettings.ecosystems || []).map(t => <option key={t} value={t}>{t}</option>)}
                             </select>
                           </td>
-                          <td style={{ ...styles.td, padding: '0.75rem', width: '15%' }}>
+                          <td data-label="Listeners" style={{ ...styles.td, padding: '0.75rem', width: '15%' }}>
                             <input
                               style={{ ...styles.inlineInput, width: '100%', minWidth: '90px', padding: '0.4rem' }}
                               placeholder="Monthly Listeners" type="number"
@@ -362,10 +363,10 @@ export const ArtistsPage = ({ data, refreshData }) => {
                               onChange={e => setEditData({ ...editData, spotify_listeners: e.target.value })}
                             />
                           </td>
-                          <td style={{ ...styles.td, width: '5%' }}>
+                          <td data-label="Concerts Logged" style={{ ...styles.td, width: '5%' }}>
                             <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.75rem' }}>Readonly</span>
                           </td>
-                          <td style={{ ...styles.td, padding: '0.75rem', width: '10%', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          <td data-label="Actions" style={{ ...styles.td, padding: '0.75rem', width: '10%', textAlign: 'right', whiteSpace: 'nowrap' }}>
                             <button onClick={saveEdit} disabled={loading} style={{ ...styles.actionBtn, color: '#2e7d32', marginRight: '4px' }} title="Save">
                               <Save size={18} />
                             </button>
@@ -388,22 +389,22 @@ export const ArtistsPage = ({ data, refreshData }) => {
 
                   return (
                     <tr key={artist.id} style={{ ...styles.tr, backgroundColor: isDeleting ? '#fee2e2' : undefined }}>
-                      <td style={{ ...styles.td, fontWeight: '500' }}>
+                      <td data-label="Artist" style={{ ...styles.td, fontWeight: '500' }}>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                           <span style={{ fontSize: '1rem' }}>{artist.name} {artist.is_cover_band && <span style={{ fontSize: '0.65rem', backgroundColor: '#fef3c7', color: '#d97706', padding: '0.1rem 0.3rem', borderRadius: '4px', verticalAlign: 'middle', marginLeft: '0.3rem' }}>COVER</span>}</span>
                           {artist.first_album_year && <span style={{ fontSize: '0.75rem', color: '#64748b' }}>First Album {artist.first_album_year}</span>}
                         </div>
                       </td>
-                      <td style={styles.td}>
+                      <td data-label="Primary Genre" style={styles.td}>
                         {primaryGenreObj ? <span style={{ fontWeight: 'bold', color: '#6d28d9' }}>{primaryGenreObj.name}</span> : <span style={{ color: '#94a3b8' }}>-</span>}
                       </td>
-                      <td style={styles.td}>
+                      <td data-label="All Genres" style={styles.td}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
                           {genreTags.map(g => <span key={g} style={{ fontSize: '0.7rem', backgroundColor: '#ede9fe', color: '#6d28d9', padding: '0.2rem 0.4rem', borderRadius: '4px' }}>{g}</span>)}
                           {genreTags.length === 0 && <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.8rem' }}>No tags</span>}
                         </div>
                       </td>
-                      <td style={styles.td}>
+                      <td data-label="Demographics" style={styles.td}>
                         <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '0.2rem' }}>
                           {artist.tier && <div><strong style={{ color: '#475569' }}>Tier:</strong> {artist.tier}</div>}
                           {artist.artist_type && <div><strong style={{ color: '#475569' }}>Type:</strong> {artist.artist_type}</div>}
@@ -411,10 +412,10 @@ export const ArtistsPage = ({ data, refreshData }) => {
                           {!artist.tier && !artist.artist_type && !artist.ecosystem && <span style={{ color: '#94a3b8' }}>-</span>}
                         </div>
                       </td>
-                      <td style={styles.td}>
+                      <td data-label="Listeners" style={styles.td}>
                         {artist.spotify_listeners ? <span style={{ color: '#1db954', fontWeight: '500' }}>{formatNum(artist.spotify_listeners)} mo</span> : <span style={{ color: '#94a3b8' }}>-</span>}
                       </td>
-                      <td style={styles.td}>
+                      <td data-label="Concerts Logged" style={styles.td}>
                         {concertCount > 0 ? (
                           <span style={{ backgroundColor: '#e2e8f0', color: '#0f172a', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>
                             {concertCount}
@@ -423,7 +424,7 @@ export const ArtistsPage = ({ data, refreshData }) => {
                           <span style={{ color: '#94a3b8' }}>0</span>
                         )}
                       </td>
-                      <td style={{ ...styles.td, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <td data-label="Actions" style={{ ...styles.td, textAlign: 'right', whiteSpace: 'nowrap' }}>
                         {isDeleting ? (
                           <>
                             <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#c62828', marginRight: '8px' }}>Confirm?</span>

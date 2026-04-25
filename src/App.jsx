@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { supabase } from './supabaseClient';
+import { Plus } from 'lucide-react';
 import { useDashboardData } from './hooks/useDashboardData';
 import { Navigation } from './components/Navigation';
 import { DashboardPage } from './pages/DashboardPage';
@@ -95,6 +96,13 @@ function App() {
               You're in Guest Mode — exploring a read-only version of the app. Sign in anytime to track your own concerts and preferences.
             </div>
           )}
+          
+          {(session || guestMode) && !guestMode && (
+            <Link to="/add" className="fab" title="Log New Concert">
+              <Plus size={28} />
+            </Link>
+          )}
+
           <Routes>
             <Route path="/" element={<ProtectedRoute session={session} guestMode={guestMode} guestAllowed={false}><DashboardPage data={data} /></ProtectedRoute>} />
             <Route path="/login" element={session ? <Navigate to="/" replace /> : guestMode ? <Navigate to="/community" replace /> : <LoginPage onGuestLogin={handleGuestLogin} />} />

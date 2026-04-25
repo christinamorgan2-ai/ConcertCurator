@@ -10,6 +10,7 @@ export const LoginPage = ({ onGuestLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleOAuthSignIn = async (provider) => {
@@ -32,7 +33,13 @@ export const LoginPage = ({ onGuestLogin }) => {
     setError(null);
     setMessage('');
     try {
-      if (isSignUp) {
+      if (isResetting) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin + '/update-password',
+        });
+        if (error) throw error;
+        setMessage('Password reset instructions sent! Check your email.');
+      } else if (isSignUp) {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         setMessage('Success! Check your email for the confirmation link.');
@@ -70,22 +77,39 @@ export const LoginPage = ({ onGuestLogin }) => {
             required
             style={styles.inputField}
           />
-          <input 
-            type="password" 
-            placeholder="Password" 
-            value={password} 
-            onChange={e => setPassword(e.target.value)}
-            required
-            style={styles.inputField}
-          />
+          {!isResetting && (
+            <input 
+              type="password" 
+              placeholder="Password" 
+              value={password} 
+              onChange={e => setPassword(e.target.value)}
+              required
+              style={styles.inputField}
+            />
+          )}
           <button type="submit" disabled={loading} style={styles.submitBtn}>
-            {loading ? 'Processing...' : (isSignUp ? 'Sign Up' : 'Sign In')}
+            {loading ? 'Processing...' : (isResetting ? 'Send Reset Link' : isSignUp ? 'Sign Up' : 'Sign In')}
           </button>
           
           <div style={styles.toggleTextContainer}>
-            <button type="button" onClick={() => setIsSignUp(!isSignUp)} style={styles.toggleBtn}>
-              {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
-            </button>
+            {isResetting ? (
+              <button type="button" onClick={() => { setIsResetting(false); setError(null); setMessage(''); }} style={styles.toggleBtn}>
+                Back to Sign In
+              </button>
+            ) : (
+              <>
+                <button type="button" onClick={() => setIsSignUp(!isSignUp)} style={styles.toggleBtn}>
+                  {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
+                </button>
+                {!isSignUp && (
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <button type="button" onClick={() => { setIsResetting(true); setError(null); setMessage(''); }} style={styles.toggleBtn}>
+                      Forgot Password?
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </form>
 

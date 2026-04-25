@@ -7,6 +7,7 @@ import { Navigation } from './components/Navigation';
 import { DashboardPage } from './pages/DashboardPage';
 import { AddConcertPage } from './pages/AddConcertPage';
 import { LoginPage } from './pages/LoginPage';
+import { UpdatePasswordPage } from './pages/UpdatePasswordPage';
 
 import { ConcertsPage } from './pages/ConcertsPage';
 import { VenuesPage } from './pages/VenuesPage';
@@ -106,6 +107,7 @@ function App() {
           <Routes>
             <Route path="/" element={<ProtectedRoute session={session} guestMode={guestMode} guestAllowed={false}><DashboardPage data={data} /></ProtectedRoute>} />
             <Route path="/login" element={session ? <Navigate to="/" replace /> : guestMode ? <Navigate to="/community" replace /> : <LoginPage onGuestLogin={handleGuestLogin} />} />
+            <Route path="/update-password" element={<UpdatePasswordPage />} />
             
             <Route path="/concerts" element={<ProtectedRoute session={session} guestMode={guestMode} guestAllowed={false}><ConcertsPage data={data} refreshData={refreshData} /></ProtectedRoute>} />
             <Route path="/venues" element={<ProtectedRoute session={session} guestMode={guestMode} guestAllowed={false}><VenuesPage data={data} refreshData={refreshData} /></ProtectedRoute>} />

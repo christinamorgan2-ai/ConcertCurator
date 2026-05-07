@@ -65,7 +65,8 @@ export const Navigation = ({ session, guestMode, onExitGuestMode }) => {
       <nav className={`sidebar-nav ${mobileOpen ? 'open' : ''}`}>
         <div style={styles.topSection}>
           <div style={styles.brand}>
-            <h2>Concert Curator</h2>
+            <img src="/logo_icon_white.svg" alt="Concert Curator" width={32} height={32} style={{ display: 'block' }} />
+            <h2 style={{ margin: 0, fontSize: '1.1rem', color: '#ffffff', whiteSpace: 'nowrap' }}>Concert Curator</h2>
           </div>
           <div style={styles.menu}>
             {navItem("/", LayoutDashboard, "Dashboard", guestMode)}
@@ -77,8 +78,12 @@ export const Navigation = ({ session, guestMode, onExitGuestMode }) => {
           </div>
 
           <div style={styles.navGroup}>
+            <div style={styles.navHeader}>COMMUNITY</div>
+            {navItem("/community", Globe, "Public Profiles", false)}
+          </div>
+
+          <div style={styles.navGroup}>
             <div style={styles.navHeader}>SYSTEM</div>
-            {navItem("/community", Globe, "Community", false)}
             {navItem("/settings", Settings, "Settings", guestMode)}
           </div>
         </div>
@@ -122,8 +127,11 @@ const styles = {
     marginTop: 'auto'
   },
   brand: {
-    marginBottom: '3rem',
+    marginBottom: '1.5rem',
     padding: '0 1rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem'
   },
   menu: {
     display: 'flex',

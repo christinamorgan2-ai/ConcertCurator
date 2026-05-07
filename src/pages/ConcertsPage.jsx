@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { Edit2, Save, X, Trash2 } from 'lucide-react';
+import { SpotifyArtistAutocomplete } from '../components/SpotifyArtistAutocomplete';
 
 const ObjectSort = (arr, key) => [...arr].sort((a,b) => (a[key] || '').localeCompare(b[key] || ''));
 
@@ -13,19 +14,13 @@ export const ConcertsPage = ({ data, refreshData }) => {
   
   // Custom Edit State for Concerts
   const [editData, setEditData] = useState({});
-  const [artistInput, setArtistInput] = useState('');
-  const artistInputRef = useRef(null);
   const [attendeeInput, setAttendeeInput] = useState('');
   const attendeeInputRef = useRef(null);
 
   // Auto-focus effects bonded to array growth
   const prevArtistCount = useRef(editData.selectedArtists?.length || 0);
   useEffect(() => {
-    const current = editData.selectedArtists?.length || 0;
-    if (current > prevArtistCount.current) {
-      artistInputRef.current?.focus();
-    }
-    prevArtistCount.current = current;
+    prevArtistCount.current = editData.selectedArtists?.length || 0;
   }, [editData.selectedArtists]);
 
   const prevAttendeeCount = useRef(editData.selectedAttendees?.length || 0);
@@ -51,7 +46,7 @@ export const ConcertsPage = ({ data, refreshData }) => {
     const concertLinks = data.concertArtistBridge.filter(b => b.ConcertID === c.id);
     const initialArtists = concertLinks.map(link => {
       const a = data.artists.find(art => art.id === link.ArtistID);
-      return a ? a.name : null;
+      return a ? { name: a.name, genres: [] } : null;
     }).filter(Boolean);
 
     // Reverse map the attendee bridge
@@ -77,23 +72,17 @@ export const ConcertsPage = ({ data, refreshData }) => {
     setEditingId(null);
     setEditData({});
     setEditError(null);
-    setArtistInput('');
   };
 
   // Artist Tag Input Handlers for Edit Mode
-  const handleArtistKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      const val = artistInput.trim();
-      if (val && !editData.selectedArtists.includes(val)) {
-        setEditData({ ...editData, selectedArtists: [...editData.selectedArtists, val] });
-      }
-      setArtistInput('');
+  const handleSelectArtist = (artistObj) => {
+    if (artistObj.name && !editData.selectedArtists.some(a => a.name === artistObj.name)) {
+      setEditData({ ...editData, selectedArtists: [...editData.selectedArtists, artistObj] });
     }
   };
 
   const removeArtist = (nameToRemove) => {
-    setEditData({ ...editData, selectedArtists: editData.selectedArtists.filter(a => a !== nameToRemove) });
+    setEditData({ ...editData, selectedArtists: editData.selectedArtists.filter(a => a.name !== nameToRemove) });
   };
 
   const handleAttendeeKeyDown = (e) => {
@@ -171,19 +160,71 @@ export const ConcertsPage = ({ data, refreshData }) => {
 
       // 3. Rebuild the artist bridge completely
       const bridgeInserts = [];
-      for (const artistName of editData.selectedArtists) {
+      const genreBridgeInserts = [];
+      const newGenresToInsert = [];
+
+      for (const artistObj of editData.selectedArtists) {
         let artistId;
+        const artistName = artistObj.name;
+        const artistGenres = artistObj.genres || [];
+        
         const match = data.artists.find(a => a.name.toLowerCase() === artistName.toLowerCase());
         
         if (match) {
           artistId = match.id;
         } else {
           artistId = crypto.randomUUID();
-          const { error: aErr } = await supabase.from('artists').insert([{ id: artistId, name: artistName }]);
+          
+          let primaryGenreId = null;
+          if (artistGenres.length > 0) {
+             const primaryGenreName = artistGenres[0];
+             let genreMatch = data.genres.find(g => g.name.toLowerCase() === primaryGenreName.toLowerCase());
+             if (!genreMatch) {
+                const newGenreId = crypto.randomUUID();
+                newGenresToInsert.push({ id: newGenreId, name: primaryGenreName });
+                primaryGenreId = newGenreId;
+                data.genres.push({ id: newGenreId, name: primaryGenreName });
+             } else {
+                primaryGenreId = genreMatch.id;
+             }
+          }
+
+          const { error: aErr } = await supabase.from('artists').insert([{ 
+            id: artistId, 
+            name: artistName,
+            primary_genre_id: primaryGenreId,
+            spotify_listeners: artistObj.followers || null
+          }]);
           if (aErr) throw new Error("Failed to insert new artist " + artistName);
+          
+          for (let i = 1; i < artistGenres.length; i++) {
+             const genreName = artistGenres[i];
+             let genreMatch = data.genres.find(g => g.name.toLowerCase() === genreName.toLowerCase());
+             let genreId;
+             if (!genreMatch) {
+                genreId = crypto.randomUUID();
+                newGenresToInsert.push({ id: genreId, name: genreName });
+                data.genres.push({ id: genreId, name: genreName });
+             } else {
+                genreId = genreMatch.id;
+             }
+             genreBridgeInserts.push({ artist_id: artistId, genre_id: genreId });
+          }
         }
 
         bridgeInserts.push({ concert_id: editData.id, artist_id: artistId });
+      }
+
+      if (newGenresToInsert.length > 0) {
+         const uniqueGenres = Array.from(new Set(newGenresToInsert.map(g => g.name)))
+           .map(name => newGenresToInsert.find(g => g.name === name));
+         const { error: gErr } = await supabase.from('genres').insert(uniqueGenres);
+         if (gErr) throw new Error("Failed to insert genres");
+      }
+
+      if (genreBridgeInserts.length > 0) {
+         const { error: gbErr } = await supabase.from('artist_genre_bridge').insert(genreBridgeInserts);
+         if (gbErr) throw new Error("Failed to insert artist genres");
       }
 
       const { error: bridgeError } = await supabase.from('concert_artist_bridge').insert(bridgeInserts);
@@ -221,6 +262,9 @@ export const ConcertsPage = ({ data, refreshData }) => {
     }
   };
 
+  const today = new Date();
+  const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+
   return (
     <div style={sharedTableStyles.page}>
       <header style={sharedTableStyles.header}>
@@ -238,6 +282,21 @@ export const ConcertsPage = ({ data, refreshData }) => {
           ⚠️ {globalError}
         </div>
       )}
+
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', fontSize: '0.875rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ffffff', border: '1px solid #cbd5e1' }}></div>
+          <span style={{ color: 'var(--text-secondary)' }}>Past</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#fef3c7', border: '1px solid #fde68a' }}></div>
+          <span style={{ color: 'var(--text-secondary)' }}>Today</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#dcfce3', border: '1px solid #bbf7d0' }}></div>
+          <span style={{ color: 'var(--text-secondary)' }}>Upcoming</span>
+        </div>
+      </div>
 
       <div style={sharedTableStyles.tableContainer}>
         <div style={{ overflowX: 'auto' }}>
@@ -282,24 +341,18 @@ export const ConcertsPage = ({ data, refreshData }) => {
                           <td data-label="Lineup" style={{...sharedTableStyles.td, padding: '0.5rem', width: '25%'}}>
                             <div style={{...tagStyles.tagContainer, minHeight: '30px', padding: '0.2rem'}}>
                               {editData.selectedArtists.map(artist => (
-                                <div key={artist} style={tagStyles.tag}>
-                                  <span>{artist}</span>
-                                  <button type="button" onClick={() => removeArtist(artist)} style={tagStyles.tagRemove} title="Remove Act"><X size={12} /></button>
+                                <div key={artist.name} style={tagStyles.tag}>
+                                  <span>{artist.name}</span>
+                                  <button type="button" onClick={() => removeArtist(artist.name)} style={tagStyles.tagRemove} title="Remove Act"><X size={12} /></button>
                                 </div>
                               ))}
-                              <input 
-                                ref={artistInputRef}
-                                list="edit-artist-suggestions"
-                                type="text" 
-                                value={artistInput} 
-                                onChange={e => setArtistInput(e.target.value)} 
-                                onKeyDown={handleArtistKeyDown}
-                                style={{...tagStyles.tagInput, minWidth: '150px'}}
-                                placeholder="Add act & press Enter..."
-                              />
-                              <datalist id="edit-artist-suggestions">
-                                {ObjectSort(data.artists, 'name').map(a => <option key={a.id} value={a.name} />)}
-                              </datalist>
+                              <div style={{ position: 'relative', minWidth: '150px', flex: 1, zIndex: 10 }}>
+                                <SpotifyArtistAutocomplete 
+                                  onSelectArtist={handleSelectArtist} 
+                                  style={{...tagStyles.tagInput, width: '100%'}}
+                                  placeholder="Add act..."
+                                />
+                              </div>
                             </div>
                           </td>
                           <td data-label="Attendees" style={{...sharedTableStyles.td, padding: '0.5rem', width: '15%'}}>
@@ -364,8 +417,19 @@ export const ConcertsPage = ({ data, refreshData }) => {
                      return a ? a.name : 'Unknown';
                   }).join(', ');
 
+                  let rowBgColor = undefined;
+                  if (isDeleting) {
+                    rowBgColor = '#fee2e2';
+                  } else if (c.date === todayStr) {
+                    rowBgColor = '#fef3c7'; // Today (amber-100)
+                  } else if (c.date > todayStr) {
+                    rowBgColor = '#dcfce3'; // Future (green-100)
+                  } else {
+                    rowBgColor = '#ffffff'; // Past (default white)
+                  }
+
                   return (
-                    <tr key={c.id} style={{...sharedTableStyles.tr, backgroundColor: isDeleting ? '#fee2e2' : undefined}}>
+                    <tr key={c.id} style={{...sharedTableStyles.tr, backgroundColor: rowBgColor}}>
                       <td data-label="Date" style={sharedTableStyles.td}>{c.date}</td>
                       <td data-label="Event Title" style={{...sharedTableStyles.td, fontWeight: '500'}}>{c.name}</td>
                       <td data-label="Lineup" style={sharedTableStyles.td}>

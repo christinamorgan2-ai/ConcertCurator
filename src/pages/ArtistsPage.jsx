@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { sharedTableStyles as styles } from './ConcertsPage';
 import { Edit2, Save, X, Trash2 } from 'lucide-react';
+import { SpotifyArtistAutocomplete } from '../components/SpotifyArtistAutocomplete';
 
 const formatNum = (num) => {
   if (!num) return '-';
@@ -12,7 +13,6 @@ const ObjectSort = (arr, key) => [...arr].sort((a, b) => (a[key] || '').localeCo
 
 export const ArtistsPage = ({ data, refreshData }) => {
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({ name: '' });
   const [error, setError] = useState(null);
 
   const [editingId, setEditingId] = useState(null);
@@ -20,20 +20,8 @@ export const ArtistsPage = ({ data, refreshData }) => {
   const [editError, setEditError] = useState(null);
   const [genreInput, setGenreInput] = useState('');
   const genreInputRef = useRef(null);
-  const quickArtistInputRef = useRef(null);
   const [deletingId, setDeletingId] = useState(null);
-
   // Focus management triggers
-  const prevArtistTotalCount = useRef(data.artists?.length || 0);
-  useEffect(() => {
-    const current = data.artists?.length || 0;
-    if (current > prevArtistTotalCount.current) {
-      setTimeout(() => {
-        quickArtistInputRef.current?.focus();
-      }, 50);
-    }
-    prevArtistTotalCount.current = current;
-  }, [data.artists]);
 
   const prevGenreCount = useRef(editData.selectedGenres?.length || 0);
   useEffect(() => {
@@ -47,15 +35,12 @@ export const ArtistsPage = ({ data, refreshData }) => {
   const userSettings = data.userSettings || {};
   const TIERS = ["Mega", "Large", "Mid", "Cult"];
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.name) return;
+  const addSpotifyArtist = async (artistObj) => {
+    const cleanName = artistObj.name.trim();
+    if (!cleanName) return;
     setError(null);
 
-    // Strict Duplicate Check
-    const cleanName = formData.name.trim();
     const isDuplicate = data.artists.some(a => a.name.toLowerCase() === cleanName.toLowerCase());
-
     if (isDuplicate) {
       setError(`An artist named "${cleanName}" is already in your database!`);
       return;
@@ -63,10 +48,61 @@ export const ArtistsPage = ({ data, refreshData }) => {
 
     setLoading(true);
     try {
-      const { error: insertErr } = await supabase.from('artists').insert([{ id: crypto.randomUUID(), name: cleanName }]);
+      const artistId = crypto.randomUUID();
+      const artistGenres = artistObj.genres || [];
+      let primaryGenreId = null;
+      const newGenresToInsert = [];
+      const genreBridgeInserts = [];
+
+      // Primary genre logic
+      if (artistGenres.length > 0) {
+         const primaryGenreName = artistGenres[0];
+         let genreMatch = data.genres.find(g => g.name.toLowerCase() === primaryGenreName.toLowerCase());
+         if (!genreMatch) {
+            const newGenreId = crypto.randomUUID();
+            newGenresToInsert.push({ id: newGenreId, name: primaryGenreName });
+            primaryGenreId = newGenreId;
+            data.genres.push({ id: newGenreId, name: primaryGenreName });
+         } else {
+            primaryGenreId = genreMatch.id;
+         }
+      }
+
+      const { error: insertErr } = await supabase.from('artists').insert([{ 
+        id: artistId, 
+        name: cleanName,
+        primary_genre_id: primaryGenreId,
+        spotify_listeners: artistObj.followers || null
+      }]);
       if (insertErr) throw insertErr;
 
-      setFormData({ name: '' });
+      // Secondary genres (bridge)
+      for (let i = 1; i < artistGenres.length; i++) {
+         const genreName = artistGenres[i];
+         let genreMatch = data.genres.find(g => g.name.toLowerCase() === genreName.toLowerCase());
+         let genreId;
+         if (!genreMatch) {
+            genreId = crypto.randomUUID();
+            newGenresToInsert.push({ id: genreId, name: genreName });
+            data.genres.push({ id: genreId, name: genreName });
+         } else {
+            genreId = genreMatch.id;
+         }
+         genreBridgeInserts.push({ artist_id: artistId, genre_id: genreId });
+      }
+
+      if (newGenresToInsert.length > 0) {
+         const uniqueGenres = Array.from(new Set(newGenresToInsert.map(g => g.name)))
+           .map(name => newGenresToInsert.find(g => g.name === name));
+         const { error: gErr } = await supabase.from('genres').insert(uniqueGenres);
+         if (gErr) throw new Error("Failed to insert genres");
+      }
+
+      if (genreBridgeInserts.length > 0) {
+         const { error: gbErr } = await supabase.from('artist_genre_bridge').insert(genreBridgeInserts);
+         if (gbErr) throw new Error("Failed to insert artist genres");
+      }
+
       await refreshData();
     } catch (err) {
       setError("Error adding artist: " + err.message);
@@ -141,13 +177,38 @@ export const ArtistsPage = ({ data, refreshData }) => {
 
     setLoading(true);
     try {
-      // 1. Update Core Metadata
+      // 1. Resolve Primary Genre
+      let finalPrimaryGenreId = editData.primary_genre_id;
+
+      if (finalPrimaryGenreId === 'ADD_NEW' && editData.new_primary_genre_name) {
+        const cleanNewGenre = editData.new_primary_genre_name.trim();
+        if (cleanNewGenre) {
+          let existingMatch = data.genres.find(g => g.name.toLowerCase() === cleanNewGenre.toLowerCase());
+          if (existingMatch) {
+            finalPrimaryGenreId = existingMatch.id;
+          } else {
+            finalPrimaryGenreId = crypto.randomUUID();
+            const { error: newGenErr } = await supabase.from('genres').insert([{ id: finalPrimaryGenreId, name: cleanNewGenre }]);
+            if (newGenErr) throw new Error("Failed to insert new primary genre.");
+          }
+          // Ensure it gets bridged to the All Genres tag list automatically
+          if (!editData.selectedGenres.includes(cleanNewGenre)) {
+            editData.selectedGenres.push(cleanNewGenre);
+          }
+        } else {
+          finalPrimaryGenreId = null;
+        }
+      } else if (finalPrimaryGenreId === 'ADD_NEW') {
+        finalPrimaryGenreId = null;
+      }
+
+      // 2. Update Core Metadata
       let albumYr = parseInt(editData.first_album_year);
       let spotList = parseInt(editData.spotify_listeners);
 
       const payload = {
         name: cleanName,
-        primary_genre_id: editData.primary_genre_id || null,
+        primary_genre_id: finalPrimaryGenreId || null,
         is_cover_band: editData.is_cover_band,
         first_album_year: isNaN(albumYr) ? null : albumYr,
         tier: editData.tier || null,
@@ -234,17 +295,13 @@ export const ArtistsPage = ({ data, refreshData }) => {
 
       {error && <div style={{ padding: '1rem', backgroundColor: '#ffebee', color: '#c62828', borderRadius: '6px', border: '1px solid #c62828', fontSize: '0.875rem', marginBottom: '1.5rem' }}>{error}</div>}
 
-      <form onSubmit={handleSubmit} style={styles.inlineForm}>
-        <input
-          ref={quickArtistInputRef}
-          style={{ ...styles.inlineInput, flex: 1, maxWidth: '400px' }} placeholder="Add quick artist..." required
-          value={formData.name} onChange={e => setFormData({ name: e.target.value })}
-          autoFocus={true}
+      <div style={{...styles.inlineForm, maxWidth: '500px', display: 'flex'}}>
+        <SpotifyArtistAutocomplete 
+          onSelectArtist={addSpotifyArtist} 
+          style={{ ...styles.inlineInput, width: '100%' }}
+          placeholder="Search Spotify to add a new artist..."
         />
-        <button type="submit" disabled={loading} style={styles.addBtn}>
-          {loading ? 'Adding...' : 'Add Artist'}
-        </button>
-      </form>
+      </div>
 
       <div style={styles.tableContainer}>
         <div style={{ overflowX: 'auto' }}>
@@ -254,7 +311,7 @@ export const ArtistsPage = ({ data, refreshData }) => {
                 <th style={styles.th}>Artist</th>
                 <th style={styles.th}>Primary Genre</th>
                 <th style={styles.th}>All Genres</th>
-                <th style={styles.th}>Demographics</th>
+                <th style={styles.th}>Custom Categories from Settings</th>
                 <th style={styles.th}>Listeners</th>
                 <th style={styles.th}>Concerts Logged</th>
                 <th style={{ ...styles.th, textAlign: 'right' }}>Actions</th>
@@ -298,24 +355,44 @@ export const ArtistsPage = ({ data, refreshData }) => {
                             />
                           </td>
                           <td data-label="Primary Genre" style={{ ...styles.td, padding: '0.75rem', width: '15%' }}>
-                            <select
-                              style={{ ...styles.inlineInput, width: '100%', backgroundColor: '#fff', padding: '0.4rem' }}
-                              value={editData.primary_genre_id}
-                              onChange={e => {
-                                const newId = e.target.value;
-                                const matchedGenre = data.genres.find(g => g.id === newId);
-                                setEditData(prev => {
-                                  const tags = [...prev.selectedGenres];
-                                  if (matchedGenre && !tags.includes(matchedGenre.name)) {
-                                    tags.push(matchedGenre.name);
+                            {editData.primary_genre_id === 'ADD_NEW' ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                <input
+                                  autoFocus
+                                  style={{ ...styles.inlineInput, width: '100%', padding: '0.4rem' }}
+                                  placeholder="New Genre Name"
+                                  value={editData.new_primary_genre_name || ''}
+                                  onChange={e => setEditData({ ...editData, new_primary_genre_name: e.target.value })}
+                                />
+                                <button type="button" onClick={() => setEditData({ ...editData, primary_genre_id: '' })} style={{ fontSize: '0.7rem', color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0 }}>
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <select
+                                style={{ ...styles.inlineInput, width: '100%', backgroundColor: '#fff', padding: '0.4rem' }}
+                                value={editData.primary_genre_id || ''}
+                                onChange={e => {
+                                  const newId = e.target.value;
+                                  if (newId === 'ADD_NEW') {
+                                    setEditData(prev => ({ ...prev, primary_genre_id: 'ADD_NEW', new_primary_genre_name: '' }));
+                                    return;
                                   }
-                                  return { ...prev, primary_genre_id: newId, selectedGenres: tags };
-                                });
-                              }}
-                            >
-                              <option value="">None</option>
-                              {ObjectSort(data.genres, 'name').map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                            </select>
+                                  const matchedGenre = data.genres.find(g => g.id === newId);
+                                  setEditData(prev => {
+                                    const tags = [...prev.selectedGenres];
+                                    if (matchedGenre && !tags.includes(matchedGenre.name)) {
+                                      tags.push(matchedGenre.name);
+                                    }
+                                    return { ...prev, primary_genre_id: newId, selectedGenres: tags };
+                                  });
+                                }}
+                              >
+                                <option value="">None</option>
+                                {ObjectSort(data.genres, 'name').map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                                <option value="ADD_NEW" style={{ fontWeight: 'bold', color: '#2563eb' }}>+ Add New Genre</option>
+                              </select>
+                            )}
                           </td>
                           <td data-label="All Genres" style={{ ...styles.td, padding: '0.75rem', width: '20%' }}>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', padding: '0.3rem', border: '1px solid var(--border-color)', borderRadius: '4px', backgroundColor: '#fff', minHeight: '35px' }}>

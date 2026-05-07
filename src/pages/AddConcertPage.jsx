@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { X } from 'lucide-react';
+import { SpotifyArtistAutocomplete } from '../components/SpotifyArtistAutocomplete';
 
 const ObjectSort = (arr, key) => [...arr].sort((a, b) => (a[key] || '').localeCompare(b[key] || ''));
 
@@ -37,8 +38,6 @@ export const AddConcertPage = ({ data, refreshData }) => {
 
   // Artist Tags State
   const [selectedArtists, setSelectedArtists] = useState([]);
-  const [artistInput, setArtistInput] = useState('');
-  const artistInputRef = useRef(null);
 
   // Attendee Tags State
   const defaultAttendeeName = data.userSettings?.default_attendee_name || 'Me';
@@ -46,12 +45,8 @@ export const AddConcertPage = ({ data, refreshData }) => {
   const [attendeeInput, setAttendeeInput] = useState('');
   const attendeeInputRef = useRef(null);
 
-  // Auto-focus effects bonded to array growth
   const prevArtistCount = useRef(selectedArtists.length);
   useEffect(() => {
-    if (selectedArtists.length > prevArtistCount.current) {
-      artistInputRef.current?.focus();
-    }
     prevArtistCount.current = selectedArtists.length;
   }, [selectedArtists]);
 
@@ -80,19 +75,14 @@ export const AddConcertPage = ({ data, refreshData }) => {
     }));
   };
 
-  const handleArtistKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      const val = artistInput.trim();
-      if (val && !selectedArtists.includes(val)) {
-        setSelectedArtists([...selectedArtists, val]);
-      }
-      setArtistInput('');
+  const handleSelectArtist = (artistObj) => {
+    if (artistObj.name && !selectedArtists.some(a => a.name === artistObj.name)) {
+      setSelectedArtists([...selectedArtists, artistObj]);
     }
   };
 
   const removeArtist = (nameToRemove) => {
-    setSelectedArtists(selectedArtists.filter(a => a !== nameToRemove));
+    setSelectedArtists(selectedArtists.filter(a => a.name !== nameToRemove));
   };
 
   const handleAttendeeKeyDown = (e) => {
@@ -173,8 +163,14 @@ export const AddConcertPage = ({ data, refreshData }) => {
 
       // 2. Process all tagging relationships (Dynamically insert unknown artists)
       const bridgeInserts = [];
-      for (const artistName of selectedArtists) {
+      const genreBridgeInserts = [];
+      const newGenresToInsert = [];
+
+      for (const artistObj of selectedArtists) {
         let artistId;
+        const artistName = artistObj.name;
+        const artistGenres = artistObj.genres || [];
+        
         // Attempt to find existing artist in active cache (case insensitive)
         const match = data.artists.find(a => a.name.toLowerCase() === artistName.toLowerCase());
 
@@ -183,11 +179,61 @@ export const AddConcertPage = ({ data, refreshData }) => {
         } else {
           // Fire creation of brand new artist
           artistId = crypto.randomUUID();
-          const { error: aErr } = await supabase.from('artists').insert([{ id: artistId, name: artistName }]);
+          
+          let primaryGenreId = null;
+          
+          if (artistGenres.length > 0) {
+             const primaryGenreName = artistGenres[0];
+             let genreMatch = data.genres.find(g => g.name.toLowerCase() === primaryGenreName.toLowerCase());
+             if (!genreMatch) {
+                const newGenreId = crypto.randomUUID();
+                newGenresToInsert.push({ id: newGenreId, name: primaryGenreName });
+                primaryGenreId = newGenreId;
+                data.genres.push({ id: newGenreId, name: primaryGenreName });
+             } else {
+                primaryGenreId = genreMatch.id;
+             }
+          }
+
+          const { error: aErr } = await supabase.from('artists').insert([{ 
+             id: artistId, 
+             name: artistName,
+             primary_genre_id: primaryGenreId,
+             spotify_listeners: artistObj.followers || null
+          }]);
           if (aErr) throw new Error("Failed to insert new artist " + artistName);
+          
+          // Secondary genres (bridge)
+          for (let i = 1; i < artistGenres.length; i++) {
+             const genreName = artistGenres[i];
+             let genreMatch = data.genres.find(g => g.name.toLowerCase() === genreName.toLowerCase());
+             let genreId;
+             if (!genreMatch) {
+                genreId = crypto.randomUUID();
+                newGenresToInsert.push({ id: genreId, name: genreName });
+                data.genres.push({ id: genreId, name: genreName });
+             } else {
+                genreId = genreMatch.id;
+             }
+             genreBridgeInserts.push({ artist_id: artistId, genre_id: genreId });
+          }
         }
 
         bridgeInserts.push({ concert_id: newConcert.id, artist_id: artistId });
+      }
+
+      // Insert all new genres at once
+      if (newGenresToInsert.length > 0) {
+         const uniqueGenres = Array.from(new Set(newGenresToInsert.map(g => g.name)))
+           .map(name => newGenresToInsert.find(g => g.name === name));
+         const { error: gErr } = await supabase.from('genres').insert(uniqueGenres);
+         if (gErr) throw new Error("Failed to insert genres");
+      }
+
+      // Insert genre bridges
+      if (genreBridgeInserts.length > 0) {
+         const { error: gbErr } = await supabase.from('artist_genre_bridge').insert(genreBridgeInserts);
+         if (gbErr) throw new Error("Failed to insert artist genres");
       }
 
       // 3. Process all attendee tagging relationships
@@ -254,31 +300,20 @@ export const AddConcertPage = ({ data, refreshData }) => {
             </label>
             <div style={tagStyles.tagContainer}>
               {selectedArtists.map(artist => (
-                <div key={artist} style={tagStyles.tag}>
-                  <span>{artist}</span>
-                  <button type="button" onClick={() => removeArtist(artist)} style={tagStyles.tagRemove} title="Remove Act">
+                <div key={artist.name} style={tagStyles.tag}>
+                  <span>{artist.name}</span>
+                  <button type="button" onClick={() => removeArtist(artist.name)} style={tagStyles.tagRemove} title="Remove Act">
                     <X size={14} />
                   </button>
                 </div>
               ))}
               <div style={{ display: 'flex', alignItems: 'center', width: '100%', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
-                <input
-                  ref={artistInputRef}
-                  list="artist-suggestions"
-                  type="text"
-                  value={artistInput}
-                  onChange={e => setArtistInput(e.target.value)}
-                  onKeyDown={handleArtistKeyDown}
+                <SpotifyArtistAutocomplete 
+                  onSelectArtist={handleSelectArtist} 
                   style={tagStyles.tagInput}
-                  placeholder={selectedArtists.length === 0 ? "Type an artist name and press Enter..." : "Add another act & press Enter..."}
+                  placeholder={selectedArtists.length === 0 ? "Search Spotify for an artist..." : "Add another act..."}
                 />
-                <button type="button" onClick={(e) => handleArtistKeyDown({ key: 'Enter', preventDefault: () => e.preventDefault() })} style={{ backgroundColor: 'var(--text-primary)', color: 'white', border: 'none', borderRadius: '4px', padding: '0.4rem 0.8rem', cursor: 'pointer', fontWeight: 'bold' }}>Add</button>
               </div>
-              <datalist id="artist-suggestions">
-                {ObjectSort(data.artists, 'name').map(a => (
-                  <option key={a.id} value={a.name} />
-                ))}
-              </datalist>
             </div>
           </div>
 

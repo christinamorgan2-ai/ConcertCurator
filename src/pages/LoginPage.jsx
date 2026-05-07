@@ -58,7 +58,7 @@ export const LoginPage = ({ onGuestLogin }) => {
     <div style={styles.container}>
       <div style={styles.card}>
         <div style={styles.iconContainer}>
-          <UserCircle size={48} color="var(--text-primary)" />
+          <img src="/logo_icon.svg" alt="Concert Curator Logo" width={48} height={48} style={{ display: 'block' }} />
         </div>
         <h1 style={styles.title}>Welcome to Concert Curator</h1>
         <p style={styles.subtitle}>

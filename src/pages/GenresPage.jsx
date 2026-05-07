@@ -6,6 +6,7 @@ import { Edit2, Save, X, Trash2, AlertTriangle } from 'lucide-react';
 export const GenresPage = ({ data, refreshData }) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ name: '' });
+  const [error, setError] = useState(null);
 
   // CRUD States
   const [editingId, setEditingId] = useState(null);
@@ -15,15 +16,24 @@ export const GenresPage = ({ data, refreshData }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name) return;
+    const cleanName = formData.name.trim();
+    if (!cleanName) return;
+    
+    setError(null);
+    const isDuplicate = data.genres.some(g => g.name.toLowerCase() === cleanName.toLowerCase());
+    if (isDuplicate) {
+      setError(`A genre named "${cleanName}" already exists!`);
+      return;
+    }
+
     setLoading(true);
     try {
-      const { error } = await supabase.from('genres').insert([{ id: crypto.randomUUID(), name: formData.name }]);
-      if (error) throw error;
+      const { error: insertErr } = await supabase.from('genres').insert([{ id: crypto.randomUUID(), name: cleanName }]);
+      if (insertErr) throw insertErr;
       setFormData({ name: '' });
       await refreshData();
     } catch (err) {
-      alert("Error adding genre: " + err.message);
+      setError("Error adding genre: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -43,15 +53,22 @@ export const GenresPage = ({ data, refreshData }) => {
   };
 
   const saveEdit = async (id) => {
-    if (!editData.name.trim()) {
+    const cleanName = editData.name.trim();
+    if (!cleanName) {
       setEditError("Name is required.");
+      return;
+    }
+
+    const isDuplicate = data.genres.some(g => g.name.toLowerCase() === cleanName.toLowerCase() && g.id !== id);
+    if (isDuplicate) {
+      setEditError(`Cannot rename: a genre named "${cleanName}" already exists.`);
       return;
     }
     setLoading(true);
     setEditError(null);
     try {
-      const { data: updatedRows, error } = await supabase.from('genres').update({ name: editData.name.trim() }).eq('id', id).select();
-      if (error) throw error;
+      const { data: updatedRows, error: updateErr } = await supabase.from('genres').update({ name: cleanName }).eq('id', id).select();
+      if (updateErr) throw updateErr;
       if (!updatedRows || updatedRows.length === 0) {
          throw new Error("Target row not updated. You likely don't have Update permission.");
       }
@@ -95,6 +112,8 @@ export const GenresPage = ({ data, refreshData }) => {
           <p style={styles.pageSubtitle}>Musical categories</p>
         </div>
       </header>
+
+      {error && <div style={{ padding: '1rem', backgroundColor: '#ffebee', color: '#c62828', borderRadius: '6px', border: '1px solid #c62828', fontSize: '0.875rem', marginBottom: '1.5rem' }}>{error}</div>}
 
       <form onSubmit={handleSubmit} style={styles.inlineForm}>
         <input 

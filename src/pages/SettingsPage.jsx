@@ -154,14 +154,14 @@ export const SettingsPage = ({ data, refreshData }) => {
                 value={formData.default_attendee_name}
                 onChange={e => setFormData({ ...formData, default_attendee_name: e.target.value })}
               />
-              <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0 }}>Automatically injected into the Attendees tag box for new concerts.</p>
+              <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0 }}>Automatically added to the Attendees tag box for new concerts.</p>
             </div>
           </div>
 
           <div style={{ borderTop: '1px solid #e2e8f0' }}></div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: '0', color: 'var(--text-primary)' }}>Artist Categories</h2>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: '0', color: 'var(--text-primary)' }}>Custom Artist Categories</h2>
             <p style={{ fontSize: '0.875rem', color: '#64748b', margin: 0 }}>Define custom dropdown categories for detailed database classification.</p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>

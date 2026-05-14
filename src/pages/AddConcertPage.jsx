@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { X } from 'lucide-react';
 import { SpotifyArtistAutocomplete } from '../components/SpotifyArtistAutocomplete';
+import { fetchArtistGenres } from '../utils/musicBrainz';
 
 const ObjectSort = (arr, key) => [...arr].sort((a, b) => (a[key] || '').localeCompare(b[key] || ''));
 
@@ -165,11 +166,12 @@ export const AddConcertPage = ({ data, refreshData }) => {
       const bridgeInserts = [];
       const genreBridgeInserts = [];
       const newGenresToInsert = [];
+      const newArtistsToInsert = [];
 
       for (const artistObj of selectedArtists) {
         let artistId;
         const artistName = artistObj.name;
-        const artistGenres = artistObj.genres || [];
+        let artistGenres = artistObj.genres || [];
         
         // Attempt to find existing artist in active cache (case insensitive)
         const match = data.artists.find(a => a.name.toLowerCase() === artistName.toLowerCase());
@@ -180,6 +182,11 @@ export const AddConcertPage = ({ data, refreshData }) => {
           // Fire creation of brand new artist
           artistId = crypto.randomUUID();
           
+          const mbGenres = await fetchArtistGenres(artistName);
+          if (mbGenres.length > 0) {
+            artistGenres = mbGenres;
+          }
+
           let primaryGenreId = null;
           
           if (artistGenres.length > 0) {
@@ -195,13 +202,12 @@ export const AddConcertPage = ({ data, refreshData }) => {
              }
           }
 
-          const { error: aErr } = await supabase.from('artists').insert([{ 
+          newArtistsToInsert.push({ 
              id: artistId, 
              name: artistName,
              primary_genre_id: primaryGenreId,
              spotify_listeners: artistObj.followers || null
-          }]);
-          if (aErr) throw new Error("Failed to insert new artist " + artistName);
+          });
           
           // Secondary genres (bridge)
           for (let i = 1; i < artistGenres.length; i++) {
@@ -228,6 +234,11 @@ export const AddConcertPage = ({ data, refreshData }) => {
            .map(name => newGenresToInsert.find(g => g.name === name));
          const { error: gErr } = await supabase.from('genres').insert(uniqueGenres);
          if (gErr) throw new Error("Failed to insert genres");
+      }
+
+      if (newArtistsToInsert.length > 0) {
+         const { error: aErr } = await supabase.from('artists').insert(newArtistsToInsert);
+         if (aErr) throw new Error("Failed to insert new artists");
       }
 
       // Insert genre bridges

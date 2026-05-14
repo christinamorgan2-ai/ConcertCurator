@@ -16,9 +16,9 @@ export const useDashboardData = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       
       const { data: { user }, error: authErr } = await supabase.auth.getUser();
       if (authErr || !user) {
@@ -70,7 +70,7 @@ export const useDashboardData = () => {
     } catch (err) {
       setError(err.message || 'Failed to load data');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 

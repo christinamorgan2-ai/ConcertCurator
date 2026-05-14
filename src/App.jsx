@@ -17,6 +17,7 @@ import { GenresPage } from './pages/GenresPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { CommunityPage } from './pages/CommunityPage';
 import { PublicDashboardPage } from './pages/PublicDashboardPage';
+import { ContactPage } from './pages/ContactPage';
 
 // Simple Route Guard
 const ProtectedRoute = ({ session, guestMode, guestAllowed, children }) => {
@@ -120,6 +121,7 @@ function App() {
             
             <Route path="/community" element={<ProtectedRoute session={session} guestMode={guestMode} guestAllowed={true}><CommunityPage /></ProtectedRoute>} />
             <Route path="/community/:id" element={<ProtectedRoute session={session} guestMode={guestMode} guestAllowed={true}><PublicDashboardPage /></ProtectedRoute>} />
+            <Route path="/contact" element={<ContactPage />} />
           </Routes>
         </div>
       </div>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { X } from 'lucide-react';
 import { SpotifyArtistAutocomplete } from '../components/SpotifyArtistAutocomplete';
+import { TicketmasterAutocomplete } from '../components/TicketmasterAutocomplete';
 import { fetchArtistGenres } from '../utils/musicBrainz';
 
 const ObjectSort = (arr, key) => [...arr].sort((a, b) => (a[key] || '').localeCompare(b[key] || ''));
@@ -65,7 +66,8 @@ export const AddConcertPage = ({ data, refreshData }) => {
     tour_name: '',
     date: '',
     venue_id: '',
-    festival: false
+    festival: false,
+    notes: ''
   });
 
   const handleChange = (e) => {
@@ -101,6 +103,45 @@ export const AddConcertPage = ({ data, refreshData }) => {
     setSelectedAttendees(selectedAttendees.filter(a => a !== nameToRemove));
   };
 
+  const handleSelectTicketmasterEvent = (event) => {
+    setFormData(prev => ({ ...prev, name: event.name }));
+    
+    if (event.date) {
+      setFormData(prev => ({ ...prev, date: event.date }));
+    }
+
+    if (event.artists && event.artists.length > 0) {
+      const newArtists = [...selectedArtists];
+      event.artists.forEach(artistName => {
+        if (!newArtists.some(a => a.name === artistName)) {
+          newArtists.push({ name: artistName, genres: [] });
+        }
+      });
+      setSelectedArtists(newArtists);
+    }
+
+    if (event.venue) {
+      const cleanName = event.venue.name.trim().toLowerCase();
+      const match = data.venues.find(v => v.name.toLowerCase() === cleanName);
+      
+      if (match) {
+        setIsNewVenue(false);
+        setFormData(prev => ({ ...prev, venue_id: match.id }));
+      } else {
+        setIsNewVenue(true);
+        setFormData(prev => ({ ...prev, venue_id: '' }));
+        setNewVenueData({
+          name: event.venue.name,
+          city: event.venue.city || '',
+          region: event.venue.region || '',
+          country: event.venue.country || userDefaultCountry,
+          lat: event.venue.lat || '',
+          long: event.venue.long || ''
+        });
+      }
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -109,9 +150,6 @@ export const AddConcertPage = ({ data, refreshData }) => {
     try {
       if (selectedArtists.length === 0) {
         throw new Error("Please add at least one artist to the lineup.");
-      }
-      if (selectedAttendees.length === 0) {
-        throw new Error("Please add at least one attendee.");
       }
 
       let finalVenueId = formData.venue_id;
@@ -155,7 +193,8 @@ export const AddConcertPage = ({ data, refreshData }) => {
         tour_name: formData.tour_name,
         date: formData.date,
         venue_id: finalVenueId,
-        festival: formData.festival
+        festival: formData.festival,
+        notes: formData.notes
       };
 
       // 1. Insert Core Concert
@@ -293,14 +332,15 @@ export const AddConcertPage = ({ data, refreshData }) => {
 
           <div style={styles.formGroup}>
             <label style={styles.label}>Event Title (Festival/Headliner) <span style={styles.required}>*</span></label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              style={styles.input}
-              placeholder="e.g. My Chemical Romance or Riot Fest 2024"
-            />
+            <div style={{ display: 'flex', width: '100%', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: '#fff', position: 'relative' }}>
+              <TicketmasterAutocomplete 
+                value={formData.name}
+                onChange={(val) => setFormData(prev => ({ ...prev, name: val }))}
+                onSelectEvent={handleSelectTicketmasterEvent}
+                placeholder="Search Ticketmaster or type custom name..."
+                style={{ ...styles.input, border: 'none', borderRadius: 0, outline: 'none' }}
+              />
+            </div>
           </div>
 
           {/* ARIST TAGGER COMPONENT */}
@@ -330,7 +370,7 @@ export const AddConcertPage = ({ data, refreshData }) => {
 
           <div style={{ ...styles.formGroup, padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
             <label style={{ ...styles.label, display: 'flex', justifyContent: 'space-between' }}>
-              <span>Attendees <span style={styles.required}>*</span></span>
+              <span>Attendees (Optional)</span>
               <span style={{ fontSize: '0.75rem', fontWeight: '400' }}>Hit Enter to add friends</span>
             </label>
             <div style={{ ...tagStyles.tagContainer, borderColor: '#cbd5e1' }}>
@@ -493,6 +533,17 @@ export const AddConcertPage = ({ data, refreshData }) => {
                 </div>
               )}
             </div>
+          </div>
+
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Notes / Setlist</label>
+            <textarea
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              style={{ ...styles.input, minHeight: '80px', resize: 'vertical' }}
+              placeholder="Memories, setlist, support acts..."
+            />
           </div>
 
           <div style={styles.checkboxGroup}>

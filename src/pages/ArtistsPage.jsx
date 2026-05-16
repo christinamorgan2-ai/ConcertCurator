@@ -577,7 +577,24 @@ export const ArtistsPage = ({ data, refreshData }) => {
                   }
 
                   // Read Only View
-                  const concertCount = data.concertArtistBridge.filter(b => b.ArtistID === artist.id).length;
+                  const concertLinks = data.concertArtistBridge.filter(b => b.ArtistID === artist.id);
+                  const concertCount = concertLinks.length;
+                  
+                  const hoverTitle = concertLinks.length > 0 ? concertLinks.map(link => {
+                    const c = data.concerts.find(con => con.id === link.ConcertID);
+                    if (!c) return null;
+                    const v = data.venues.find(ven => ven.id === (c.venue_id || c.VenueID));
+                    const vName = v ? (v.name || v.Name) : 'Unknown Venue';
+                    let dStr = c.date;
+                    try {
+                      if (c.date) {
+                        // Append time to prevent timezone day shifting
+                        dStr = new Date(c.date + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+                      }
+                    } catch(e) {}
+                    return `${dStr} @ ${vName}`;
+                  }).filter(Boolean).join('\n') : "No concerts logged";
+
                   const primaryGenreObj = data.genres.find(g => g.id === artist.primary_genre_id);
                   const genreTags = data.artistGenreBridge.filter(b => b.ArtistID === artist.id).map(link => {
                     const g = data.genres.find(gen => gen.id === link.GenreID);
@@ -588,7 +605,9 @@ export const ArtistsPage = ({ data, refreshData }) => {
                     <tr key={artist.id} style={{ ...styles.tr, backgroundColor: isDeleting ? '#fee2e2' : undefined }}>
                       <td data-label="Artist" style={{ ...styles.td, fontWeight: '500' }}>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontSize: '1rem' }}>{artist.name} {artist.is_cover_band && <span style={{ fontSize: '0.65rem', backgroundColor: '#fef3c7', color: '#d97706', padding: '0.1rem 0.3rem', borderRadius: '4px', verticalAlign: 'middle', marginLeft: '0.3rem' }}>COVER</span>}</span>
+                          <span title={hoverTitle} style={{ fontSize: '1rem', cursor: 'help', borderBottom: '1px dotted #94a3b8', width: 'fit-content' }}>
+                            {artist.name} {artist.is_cover_band && <span style={{ fontSize: '0.65rem', backgroundColor: '#fef3c7', color: '#d97706', padding: '0.1rem 0.3rem', borderRadius: '4px', verticalAlign: 'middle', marginLeft: '0.3rem', borderBottom: 'none', cursor: 'default' }}>COVER</span>}
+                          </span>
                           {artist.first_album_year && <span style={{ fontSize: '0.75rem', color: '#64748b' }}>First Album {artist.first_album_year}</span>}
                         </div>
                       </td>

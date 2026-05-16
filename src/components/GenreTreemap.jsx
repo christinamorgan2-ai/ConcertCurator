@@ -10,12 +10,25 @@ export const GenreTreemap = ({ data }) => {
     const genreCounts = {};
     const genreArtists = {};
 
-    // 1. Get genre mappings for each artist
+    // 1. Get genre mappings for each artist (Primary Only)
     const artistToGenres = {};
+    
+    // Fallback: use the first genre found in the bridge if no primary genre exists
     if (artistGenreBridge && artistGenreBridge.length > 0) {
       artistGenreBridge.forEach(bridge => {
-        if (!artistToGenres[bridge.ArtistID]) artistToGenres[bridge.ArtistID] = [];
-        artistToGenres[bridge.ArtistID].push(bridge.GenreID);
+        if (!artistToGenres[bridge.ArtistID]) {
+          artistToGenres[bridge.ArtistID] = [bridge.GenreID];
+        }
+      });
+    }
+
+    // Override with explicit primary_genre_id if available
+    if (artists && artists.length > 0) {
+      artists.forEach(a => {
+        const id = a.ArtistID || a.id;
+        if (a.primary_genre_id) {
+          artistToGenres[id] = [a.primary_genre_id];
+        }
       });
     }
 

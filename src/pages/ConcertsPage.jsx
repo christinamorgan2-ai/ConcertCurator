@@ -585,7 +585,7 @@ export const ConcertsPage = ({ data, refreshData }) => {
                                   <CalendarPlus size={18} />
                                 </button>
                                 {openCalendarId === c.id && (
-                                  <div style={{ position: 'absolute', right: '100%', top: '0', backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', zIndex: 100, display: 'flex', flexDirection: 'column', minWidth: '140px', padding: '0.25rem' }}>
+                                  <div style={{ position: 'absolute', right: '0', top: '100%', backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', zIndex: 100, display: 'flex', flexDirection: 'column', minWidth: '140px', padding: '0.25rem' }}>
                                     <button onClick={() => {
                                       const v = data.venues.find(v => v.id === c.venue_id);
                                       const links = data.concertArtistBridge.filter(b => b.ConcertID === c.id);

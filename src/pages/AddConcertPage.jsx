@@ -65,6 +65,7 @@ export const AddConcertPage = ({ data, refreshData }) => {
     name: '',
     tour_name: '',
     date: '',
+    start_time: '',
     venue_id: '',
     festival: false,
     notes: ''
@@ -108,6 +109,9 @@ export const AddConcertPage = ({ data, refreshData }) => {
     
     if (event.date) {
       setFormData(prev => ({ ...prev, date: event.date }));
+    }
+    if (event.time) {
+      setFormData(prev => ({ ...prev, start_time: event.time }));
     }
 
     if (event.artists && event.artists.length > 0) {
@@ -192,6 +196,7 @@ export const AddConcertPage = ({ data, refreshData }) => {
         name: formData.name,
         tour_name: formData.tour_name,
         date: formData.date,
+        start_time: formData.start_time || null,
         venue_id: finalVenueId,
         festival: formData.festival,
         notes: formData.notes
@@ -311,7 +316,7 @@ export const AddConcertPage = ({ data, refreshData }) => {
       if (attBridgeError) throw attBridgeError;
 
       await refreshData();
-      navigate('/concerts');
+      navigate('/concerts', { state: { newConcertId: newConcert.id, isNew: true } });
     } catch (err) {
       setError(err.message || "Failed to save concert");
     } finally {
@@ -416,15 +421,27 @@ export const AddConcertPage = ({ data, refreshData }) => {
           </div>
 
           <div style={styles.rowGroup}>
-            <div style={{ ...styles.formGroup, flex: 1 }}>
-              <label style={styles.label}>Date <span style={styles.required}>*</span></label>
-              <input
-                type="date"
-                name="date"
-                value={formData.date}
-                onChange={handleChange}
-                style={styles.input}
-              />
+            <div style={{ display: 'flex', gap: '1rem', flex: 1, minWidth: '200px' }}>
+              <div style={{ ...styles.formGroup, flex: 1 }}>
+                <label style={styles.label}>Date <span style={styles.required}>*</span></label>
+                <input
+                  type="date"
+                  name="date"
+                  value={formData.date}
+                  onChange={handleChange}
+                  style={styles.input}
+                />
+              </div>
+              <div style={{ ...styles.formGroup, flex: 1 }}>
+                <label style={styles.label}>Time (Opt)</label>
+                <input
+                  type="time"
+                  name="start_time"
+                  value={formData.start_time || ''}
+                  onChange={handleChange}
+                  style={styles.input}
+                />
+              </div>
             </div>
 
             <div style={{ ...styles.formGroup, flex: 2 }}>

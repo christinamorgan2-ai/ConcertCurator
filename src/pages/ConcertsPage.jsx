@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { Edit2, Save, X, Trash2, FileText } from 'lucide-react';
+import { Edit2, Save, X, Trash2, FileText, CalendarPlus } from 'lucide-react';
 import { SpotifyArtistAutocomplete } from '../components/SpotifyArtistAutocomplete';
 import { fetchArtistGenres } from '../utils/musicBrainz';
+import { generateConcertIcs, generateGoogleCalendarUrl, generateOutlookCalendarUrl } from '../utils/ics';
 
 const ObjectSort = (arr, key) => [...arr].sort((a, b) => (a[key] || '').localeCompare(b[key] || ''));
 
@@ -17,6 +18,32 @@ const FestivalTent = ({ size = 16, color = "currentColor", ...props }) => (
 
 export const ConcertsPage = ({ data, refreshData }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [toastConcert, setToastConcert] = useState(null);
+  const [openCalendarId, setOpenCalendarId] = useState(null);
+
+  useEffect(() => {
+    const handleClickOutside = () => setOpenCalendarId(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (location.state && location.state.newConcertId) {
+      const addedConcert = data.concerts.find(c => c.id === location.state.newConcertId);
+      if (addedConcert) {
+        setToastConcert(addedConcert);
+        // Clear state so reload doesn't show toast again
+        window.history.replaceState({}, document.title);
+        
+        // Auto-dismiss after 8 seconds
+        setTimeout(() => {
+          setToastConcert(prev => (prev?.id === addedConcert.id ? null : prev));
+        }, 8000);
+      }
+    }
+  }, [location.state, data.concerts]);
+
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editError, setEditError] = useState(null);
@@ -72,6 +99,7 @@ export const ConcertsPage = ({ data, refreshData }) => {
       name: c.name || '',
       tour_name: c.tour_name || '',
       date: c.date || '',
+      start_time: c.start_time || '',
       venue_id: c.venue_id || '',
       festival: c.festival || false,
       notes: c.notes || '',
@@ -157,6 +185,7 @@ export const ConcertsPage = ({ data, refreshData }) => {
         name: editData.name,
         tour_name: editData.tour_name || null,
         date: editData.date,
+        start_time: editData.start_time || null,
         venue_id: editData.venue_id,
         festival: editData.festival,
         notes: editData.notes || null
@@ -401,7 +430,8 @@ export const ConcertsPage = ({ data, refreshData }) => {
                         )}
                         <tr style={{ ...sharedTableStyles.tr, backgroundColor: '#f5f8ff' }}>
                           <td data-label="Date" style={{ ...sharedTableStyles.td, padding: '0.5rem', width: '12%' }}>
-                            <input type="date" style={{ ...sharedTableStyles.inlineInput, width: '100%', minWidth: '110px', padding: '0.4rem' }} value={editData.date} onChange={e => setEditData({ ...editData, date: e.target.value })} />
+                            <input type="date" style={{ ...sharedTableStyles.inlineInput, width: '100%', minWidth: '110px', padding: '0.4rem', marginBottom: '4px' }} value={editData.date} onChange={e => setEditData({ ...editData, date: e.target.value })} />
+                            <input type="time" style={{ ...sharedTableStyles.inlineInput, width: '100%', minWidth: '110px', padding: '0.4rem' }} value={editData.start_time || ''} onChange={e => setEditData({ ...editData, start_time: e.target.value })} title="Start Time" />
                           </td>
                           <td data-label="Event Title" style={{ ...sharedTableStyles.td, padding: '0.5rem', width: '21%' }}>
                             <input style={{ ...sharedTableStyles.inlineInput, width: '100%', minWidth: '100px', padding: '0.4rem' }} placeholder="e.g. Riot Fest" value={editData.name} onChange={e => setEditData({ ...editData, name: e.target.value })} />
@@ -509,7 +539,10 @@ export const ConcertsPage = ({ data, refreshData }) => {
 
                   return (
                     <tr key={c.id} style={{ ...sharedTableStyles.tr, backgroundColor: rowBgColor }}>
-                      <td data-label="Date" style={{ ...sharedTableStyles.td, borderLeft: `4px solid ${statusColor}` }}>{c.date}</td>
+                      <td data-label="Date" style={{ ...sharedTableStyles.td, borderLeft: `4px solid ${statusColor}` }}>
+                        <div>{c.date}</div>
+                        {c.start_time && <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{c.start_time.substring(0, 5)}</div>}
+                      </td>
                       <td data-label="Event Title" style={{ ...sharedTableStyles.td, fontWeight: '500' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                           {c.name}
@@ -546,6 +579,40 @@ export const ConcertsPage = ({ data, refreshData }) => {
                           </>
                         ) : (
                           <>
+                            {c.date > todayStr && (
+                              <div style={{ position: 'relative', display: 'inline-block' }} onClick={e => e.stopPropagation()}>
+                                <button onClick={() => setOpenCalendarId(openCalendarId === c.id ? null : c.id)} style={{ ...sharedTableStyles.actionBtn, color: '#3b82f6', marginRight: '4px' }} title="Add to Calendar">
+                                  <CalendarPlus size={18} />
+                                </button>
+                                {openCalendarId === c.id && (
+                                  <div style={{ position: 'absolute', right: '100%', top: '0', backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', zIndex: 100, display: 'flex', flexDirection: 'column', minWidth: '140px', padding: '0.25rem' }}>
+                                    <button onClick={() => {
+                                      const v = data.venues.find(v => v.id === c.venue_id);
+                                      const links = data.concertArtistBridge.filter(b => b.ConcertID === c.id);
+                                      const l = links.map(link => data.artists.find(art => art.id === link.ArtistID)?.name).filter(Boolean);
+                                      generateGoogleCalendarUrl(c, v, l);
+                                      setOpenCalendarId(null);
+                                    }} style={{ padding: '0.5rem', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', color: '#1e293b', borderRadius: '4px' }} onMouseOver={e => e.target.style.backgroundColor='#f1f5f9'} onMouseOut={e => e.target.style.backgroundColor='transparent'}>Google Calendar</button>
+                                    
+                                    <button onClick={() => {
+                                      const v = data.venues.find(v => v.id === c.venue_id);
+                                      const links = data.concertArtistBridge.filter(b => b.ConcertID === c.id);
+                                      const l = links.map(link => data.artists.find(art => art.id === link.ArtistID)?.name).filter(Boolean);
+                                      generateOutlookCalendarUrl(c, v, l);
+                                      setOpenCalendarId(null);
+                                    }} style={{ padding: '0.5rem', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', color: '#1e293b', borderRadius: '4px' }} onMouseOver={e => e.target.style.backgroundColor='#f1f5f9'} onMouseOut={e => e.target.style.backgroundColor='transparent'}>Outlook Web</button>
+                                    
+                                    <button onClick={() => {
+                                      const v = data.venues.find(v => v.id === c.venue_id);
+                                      const links = data.concertArtistBridge.filter(b => b.ConcertID === c.id);
+                                      const l = links.map(link => data.artists.find(art => art.id === link.ArtistID)?.name).filter(Boolean);
+                                      generateConcertIcs(c, v, l);
+                                      setOpenCalendarId(null);
+                                    }} style={{ padding: '0.5rem', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', color: '#1e293b', borderRadius: '4px' }} onMouseOver={e => e.target.style.backgroundColor='#f1f5f9'} onMouseOut={e => e.target.style.backgroundColor='transparent'}>Apple (.ics)</button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                             <button onClick={() => startEdit(c)} style={{ ...sharedTableStyles.actionBtn, color: 'var(--text-secondary)' }} title="Edit Concert">
                               <Edit2 size={18} />
                             </button>
@@ -575,6 +642,57 @@ export const ConcertsPage = ({ data, refreshData }) => {
             <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6', color: '#334155', fontSize: '0.95rem' }}>
               {viewingNotes.notes}
             </div>
+          </div>
+        </div>
+      )}
+
+      {toastConcert && (
+        <div style={{ position: 'fixed', top: '2rem', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#fff', borderRadius: '8px', padding: '1rem 1.5rem', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0', zIndex: 1000, display: 'flex', alignItems: 'center', gap: '1rem', minWidth: '320px', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: '#dcfce3', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#166534', fontWeight: 'bold' }}>✓</div>
+            <div>
+              <p style={{ margin: 0, fontWeight: '600', color: 'var(--text-primary)' }}>Success!</p>
+              <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>{toastConcert.name} added.</p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {toastConcert.date > todayStr && (
+              <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '6px', padding: '0.25rem' }}>
+                <button 
+                  onClick={() => {
+                    const v = data.venues.find(v => v.id === toastConcert.venue_id);
+                    const links = data.concertArtistBridge.filter(b => b.ConcertID === toastConcert.id);
+                    const l = links.map(link => data.artists.find(art => art.id === link.ArtistID)?.name).filter(Boolean);
+                    generateGoogleCalendarUrl(toastConcert, v, l);
+                  }} 
+                  style={{ background: 'none', color: '#1e40af', border: 'none', padding: '0.4rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }} onMouseOver={e => e.target.style.backgroundColor='#dbeafe'} onMouseOut={e => e.target.style.backgroundColor='transparent'}>
+                  Google
+                </button>
+                <div style={{ width: '1px', backgroundColor: '#bfdbfe', margin: '0.2rem 0' }}></div>
+                <button 
+                  onClick={() => {
+                    const v = data.venues.find(v => v.id === toastConcert.venue_id);
+                    const links = data.concertArtistBridge.filter(b => b.ConcertID === toastConcert.id);
+                    const l = links.map(link => data.artists.find(art => art.id === link.ArtistID)?.name).filter(Boolean);
+                    generateOutlookCalendarUrl(toastConcert, v, l);
+                  }} 
+                  style={{ background: 'none', color: '#1e40af', border: 'none', padding: '0.4rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }} onMouseOver={e => e.target.style.backgroundColor='#dbeafe'} onMouseOut={e => e.target.style.backgroundColor='transparent'}>
+                  Outlook
+                </button>
+                <div style={{ width: '1px', backgroundColor: '#bfdbfe', margin: '0.2rem 0' }}></div>
+                <button 
+                  onClick={() => {
+                    const v = data.venues.find(v => v.id === toastConcert.venue_id);
+                    const links = data.concertArtistBridge.filter(b => b.ConcertID === toastConcert.id);
+                    const l = links.map(link => data.artists.find(art => art.id === link.ArtistID)?.name).filter(Boolean);
+                    generateConcertIcs(toastConcert, v, l);
+                  }} 
+                  style={{ background: 'none', color: '#1e40af', border: 'none', padding: '0.4rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }} onMouseOver={e => e.target.style.backgroundColor='#dbeafe'} onMouseOut={e => e.target.style.backgroundColor='transparent'} title="Download .ics">
+                  .ics
+                </button>
+              </div>
+            )}
+            <button onClick={() => setToastConcert(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', padding: '0.2rem' }}><X size={16} /></button>
           </div>
         </div>
       )}

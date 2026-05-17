@@ -34,7 +34,7 @@ export const TicketmasterAutocomplete = ({ onSelectEvent, placeholder, style, va
     const timer = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`https://app.ticketmaster.com/discovery/v2/events.json?keyword=${encodeURIComponent(query)}&apikey=${apiKey}&size=5&sort=relevance,desc`);
+        const response = await fetch(`https://app.ticketmaster.com/discovery/v2/events.json?keyword=${encodeURIComponent(query)}&apikey=${apiKey}&size=30&sort=relevance,desc`);
         if (!response.ok) throw new Error('Search failed');
         const data = await response.json();
         
@@ -60,10 +60,13 @@ export const TicketmasterAutocomplete = ({ onSelectEvent, placeholder, style, va
     setIsOpen(false);
     setResults([]);
     
-    // Parse out data
     let date = '';
+    let time = '';
     if (event.dates?.start?.localDate) {
       date = event.dates.start.localDate;
+    }
+    if (event.dates?.start?.localTime) {
+      time = event.dates.start.localTime.substring(0, 5); // HH:mm
     }
     
     let venue = null;
@@ -87,6 +90,7 @@ export const TicketmasterAutocomplete = ({ onSelectEvent, placeholder, style, va
     onSelectEvent({
       name: event.name,
       date,
+      time,
       venue,
       artists
     });

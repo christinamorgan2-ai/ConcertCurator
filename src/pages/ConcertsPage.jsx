@@ -36,10 +36,10 @@ export const ConcertsPage = ({ data, refreshData }) => {
         // Clear state so reload doesn't show toast again
         window.history.replaceState({}, document.title);
         
-        // Auto-dismiss after 8 seconds
+        // Auto-dismiss after 12 seconds
         setTimeout(() => {
           setToastConcert(prev => (prev?.id === addedConcert.id ? null : prev));
-        }, 8000);
+        }, 12000);
       }
     }
   }, [location.state, data.concerts]);

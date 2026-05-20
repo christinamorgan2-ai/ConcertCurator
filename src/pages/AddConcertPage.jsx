@@ -113,6 +113,9 @@ export const AddConcertPage = ({ data, refreshData }) => {
     if (event.time) {
       setFormData(prev => ({ ...prev, start_time: event.time }));
     }
+    if (event.tourName) {
+      setFormData(prev => ({ ...prev, tour_name: event.tourName }));
+    }
 
     if (event.artists && event.artists.length > 0) {
       const newArtists = [...selectedArtists];
@@ -128,6 +131,12 @@ export const AddConcertPage = ({ data, refreshData }) => {
       const cleanName = event.venue.name.trim().toLowerCase();
       const match = data.venues.find(v => v.name.toLowerCase() === cleanName);
       
+      let mappedCountry = event.venue.country || userDefaultCountry;
+      if (mappedCountry === 'US' || mappedCountry.toLowerCase() === 'united states of america') mappedCountry = 'USA';
+      else if (mappedCountry === 'GB' || mappedCountry.toLowerCase() === 'great britain') mappedCountry = 'UK';
+      else if (mappedCountry === 'CA') mappedCountry = 'Canada';
+      else if (mappedCountry === 'AU') mappedCountry = 'Australia';
+
       if (match) {
         setIsNewVenue(false);
         setFormData(prev => ({ ...prev, venue_id: match.id }));
@@ -138,7 +147,7 @@ export const AddConcertPage = ({ data, refreshData }) => {
           name: event.venue.name,
           city: event.venue.city || '',
           region: event.venue.region || '',
-          country: event.venue.country || userDefaultCountry,
+          country: mappedCountry,
           lat: event.venue.lat || '',
           long: event.venue.long || ''
         });
@@ -335,94 +344,25 @@ export const AddConcertPage = ({ data, refreshData }) => {
         <form onSubmit={handleSubmit} style={styles.formContainer}>
           {error && <div style={styles.errorBanner}>{error}</div>}
 
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Event Title (Festival/Headliner) <span style={styles.required}>*</span></label>
-            <div style={{ display: 'flex', width: '100%', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: '#fff', position: 'relative' }}>
-              <TicketmasterAutocomplete 
-                value={formData.name}
-                onChange={(val) => setFormData(prev => ({ ...prev, name: val }))}
-                onSelectEvent={handleSelectTicketmasterEvent}
-                placeholder="Search Ticketmaster or type custom name..."
-                style={{ ...styles.input, border: 'none', borderRadius: 0, outline: 'none' }}
-              />
-            </div>
-          </div>
+          {/* SECTION 1: Concert Details */}
+          <div style={styles.section}>
+            <h3 style={styles.sectionHeader}>Concert Details</h3>
 
-          {/* ARIST TAGGER COMPONENT */}
-          <div style={{ ...styles.formGroup, padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <label style={{ ...styles.label, display: 'flex', justifyContent: 'space-between' }}>
-              <span>Artist Lineup <span style={styles.required}>*</span></span>
-              <span style={{ fontSize: '0.75rem', fontWeight: '400' }}>Hit Enter to add</span>
-            </label>
-            <div style={tagStyles.tagContainer}>
-              {selectedArtists.map(artist => (
-                <div key={artist.name} style={tagStyles.tag}>
-                  <span>{artist.name}</span>
-                  <button type="button" onClick={() => removeArtist(artist.name)} style={tagStyles.tagRemove} title="Remove Act">
-                    <X size={14} />
-                  </button>
-                </div>
-              ))}
-              <div style={{ display: 'flex', alignItems: 'center', width: '100%', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
-                <SpotifyArtistAutocomplete 
-                  onSelectArtist={handleSelectArtist} 
-                  style={tagStyles.tagInput}
-                  placeholder={selectedArtists.length === 0 ? "Search Spotify for an artist..." : "Add another act..."}
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Event Title (Festival/Headliner) <span style={styles.required}>*</span></label>
+              <div style={{ display: 'flex', width: '100%', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: '#fff', position: 'relative' }}>
+                <TicketmasterAutocomplete 
+                  value={formData.name}
+                  onChange={(val) => setFormData(prev => ({ ...prev, name: val }))}
+                  onSelectEvent={handleSelectTicketmasterEvent}
+                  placeholder="Search Ticketmaster or type custom name..."
+                  style={{ ...styles.input, border: 'none', borderRadius: 0, outline: 'none' }}
                 />
               </div>
             </div>
-          </div>
 
-          <div style={{ ...styles.formGroup, padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <label style={{ ...styles.label, display: 'flex', justifyContent: 'space-between' }}>
-              <span>Attendees (Optional)</span>
-              <span style={{ fontSize: '0.75rem', fontWeight: '400' }}>Hit Enter to add friends</span>
-            </label>
-            <div style={{ ...tagStyles.tagContainer, borderColor: '#cbd5e1' }}>
-              {selectedAttendees.map(att => (
-                <div key={att} style={{ ...tagStyles.tag, backgroundColor: '#64748b' }}>
-                  <span>{att}</span>
-                  <button type="button" onClick={() => removeAttendee(att)} style={tagStyles.tagRemove} title="Remove Attendee">
-                    <X size={14} />
-                  </button>
-                </div>
-              ))}
-              <div style={{ display: 'flex', alignItems: 'center', width: '100%', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
-                <input
-                  ref={attendeeInputRef}
-                  list="attendee-suggestions"
-                  type="text"
-                  value={attendeeInput}
-                  onChange={e => setAttendeeInput(e.target.value)}
-                  onKeyDown={handleAttendeeKeyDown}
-                  style={tagStyles.tagInput}
-                  placeholder="Who went with you? (press Enter)"
-                />
-                <button type="button" onClick={(e) => handleAttendeeKeyDown({ key: 'Enter', preventDefault: () => e.preventDefault() })} style={{ backgroundColor: 'var(--text-primary)', color: 'white', border: 'none', borderRadius: '4px', padding: '0.4rem 0.8rem', cursor: 'pointer', fontWeight: 'bold' }}>Add</button>
-              </div>
-              <datalist id="attendee-suggestions">
-                {ObjectSort(data.attendees, 'name').map(a => (
-                  <option key={a.id} value={a.name} />
-                ))}
-              </datalist>
-            </div>
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Tour Name</label>
-            <input
-              type="text"
-              name="tour_name"
-              value={formData.tour_name}
-              onChange={handleChange}
-              style={styles.input}
-              placeholder="e.g. The Black Parade Tour"
-            />
-          </div>
-
-          <div style={styles.rowGroup}>
-            <div style={{ display: 'flex', gap: '1rem', flex: 1, minWidth: '200px' }}>
-              <div style={{ ...styles.formGroup, flex: 1 }}>
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              <div style={{ ...styles.formGroup, flex: 1, minWidth: '150px' }}>
                 <label style={styles.label}>Date <span style={styles.required}>*</span></label>
                 <input
                   type="date"
@@ -432,7 +372,7 @@ export const AddConcertPage = ({ data, refreshData }) => {
                   style={styles.input}
                 />
               </div>
-              <div style={{ ...styles.formGroup, flex: 1 }}>
+              <div style={{ ...styles.formGroup, flex: 1, minWidth: '130px' }}>
                 <label style={styles.label}>Time (Opt)</label>
                 <input
                   type="time"
@@ -442,137 +382,218 @@ export const AddConcertPage = ({ data, refreshData }) => {
                   style={styles.input}
                 />
               </div>
-            </div>
 
-            <div style={{ ...styles.formGroup, flex: 2 }}>
-              <label style={styles.label}>Venue <span style={styles.required}>*</span></label>
-              <select
-                name="venue_id"
-                value={isNewVenue ? 'NEW' : formData.venue_id}
-                onChange={(e) => {
-                  if (e.target.value === 'NEW') {
-                    setIsNewVenue(true);
-                    setFormData(prev => ({ ...prev, venue_id: '' }));
-                    setNewVenueData({ name: '', country: userDefaultCountry, region: '', city: '', lat: '', long: '' });
-                  } else {
-                    setIsNewVenue(false);
-                    handleChange(e);
-                  }
-                }}
-                style={styles.input}
-              >
-                <option value="">Select a venue...</option>
-                <option value="NEW">+ Add New Venue...</option>
-                {ObjectSort(data.venues, 'name').map(v => (
-                  <option key={v.id} value={v.id}>{v.name}</option>
-                ))}
-              </select>
+              <div style={{ ...styles.formGroup, flex: 2, minWidth: '220px' }}>
+                <label style={styles.label}>Venue <span style={styles.required}>*</span></label>
+                <select
+                  name="venue_id"
+                  value={isNewVenue ? 'NEW' : formData.venue_id}
+                  onChange={(e) => {
+                    if (e.target.value === 'NEW') {
+                      setIsNewVenue(true);
+                      setFormData(prev => ({ ...prev, venue_id: '' }));
+                      setNewVenueData({ name: '', country: userDefaultCountry, region: '', city: '', lat: '', long: '' });
+                    } else {
+                      setIsNewVenue(false);
+                      handleChange(e);
+                    }
+                  }}
+                  style={styles.input}
+                >
+                  <option value="">Select a venue...</option>
+                  <option value="NEW">+ Add New Venue...</option>
+                  {ObjectSort(data.venues, 'name').map(v => (
+                    <option key={v.id} value={v.id}>{v.name}</option>
+                  ))}
+                </select>
 
-              {isNewVenue && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem', padding: '1rem', backgroundColor: '#fafafa', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-                  <span style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--text-secondary)' }}>New Venue Details</span>
-                  <input
-                    type="text"
-                    placeholder="Venue Name *"
-                    value={newVenueData.name}
-                    onChange={(e) => {
-                      setNewVenueData({ ...newVenueData, name: e.target.value });
-                      setDuplicateVenueWarning(false);
-                      setDuplicateVenueOverride(false);
-                    }}
-                    style={styles.input}
-                    required
-                  />
-
-                  {duplicateVenueWarning && (
-                    <div style={{ padding: '0.85rem', backgroundColor: '#fff8c4', color: '#856404', borderRadius: '6px', border: '1px solid #ffeeba', fontSize: '0.875rem' }}>
-                      <strong>⚠️ Warning:</strong> A venue named "{newVenueData.name}" already exists in your database.
-                      Are you sure you want to create a duplicate? (Tip: Try appending the city, e.g. "{newVenueData.name} ({newVenueData.city || 'City'})").
-                      <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <input type="checkbox" id="dupOverride" checked={duplicateVenueOverride} onChange={e => setDuplicateVenueOverride(e.target.checked)} style={{ cursor: 'pointer' }} />
-                        <label htmlFor="dupOverride" style={{ cursor: 'pointer', fontWeight: '500' }}>Yes, deliberately create a duplicate venue</label>
-                      </div>
-                    </div>
-                  )}
-
-                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <select
-                      style={{ ...styles.input, flex: 1, minWidth: '80px', backgroundColor: '#fff' }}
-                      value={newVenueData.country} onChange={e => setNewVenueData({ ...newVenueData, country: e.target.value })}
-                    >
-                      <option value="">Country...</option>
-                      {COMMON_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-
-                    {newVenueData.country && newVenueData.country.toUpperCase() === 'USA' ? (
-                      <select
-                        style={{ ...styles.input, flex: 1, minWidth: '80px', backgroundColor: '#fff' }}
-                        value={newVenueData.region} onChange={e => setNewVenueData({ ...newVenueData, region: e.target.value })}
-                      >
-                        <option value="">State...</option>
-                        {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    ) : (
-                      <input
-                        type="text"
-                        placeholder="Region / State"
-                        value={newVenueData.region}
-                        onChange={(e) => setNewVenueData({ ...newVenueData, region: e.target.value })}
-                        style={{ ...styles.input, flex: 1, minWidth: '80px' }}
-                      />
-                    )}
-
+                {isNewVenue && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem', padding: '1rem', backgroundColor: '#fafafa', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                    <span style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--text-secondary)' }}>New Venue Details</span>
                     <input
                       type="text"
-                      placeholder="City"
-                      value={newVenueData.city}
-                      onChange={(e) => setNewVenueData({ ...newVenueData, city: e.target.value })}
-                      style={{ ...styles.input, flex: 1, minWidth: '80px' }}
+                      placeholder="Venue Name *"
+                      value={newVenueData.name}
+                      onChange={(e) => {
+                        setNewVenueData({ ...newVenueData, name: e.target.value });
+                        setDuplicateVenueWarning(false);
+                        setDuplicateVenueOverride(false);
+                      }}
+                      style={styles.input}
+                      required
                     />
-                  </div>
 
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <input
-                      type="number" step="any"
-                      placeholder="Latitude (For Map)"
-                      value={newVenueData.lat}
-                      onChange={(e) => setNewVenueData({ ...newVenueData, lat: e.target.value })}
-                      style={{ ...styles.input, flex: 1 }}
-                    />
-                    <input
-                      type="number" step="any"
-                      placeholder="Longitude (For Map)"
-                      value={newVenueData.long}
-                      onChange={(e) => setNewVenueData({ ...newVenueData, long: e.target.value })}
-                      style={{ ...styles.input, flex: 1 }}
-                    />
+                    {duplicateVenueWarning && (
+                      <div style={{ padding: '0.85rem', backgroundColor: '#fff8c4', color: '#856404', borderRadius: '6px', border: '1px solid #ffeeba', fontSize: '0.875rem' }}>
+                        <strong>⚠️ Warning:</strong> A venue named "{newVenueData.name}" already exists in your database.
+                        Are you sure you want to create a duplicate? (Tip: Try appending the city, e.g. "{newVenueData.name} ({newVenueData.city || 'City'})").
+                        <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <input type="checkbox" id="dupOverride" checked={duplicateVenueOverride} onChange={e => setDuplicateVenueOverride(e.target.checked)} style={{ cursor: 'pointer' }} />
+                          <label htmlFor="dupOverride" style={{ cursor: 'pointer', fontWeight: '500' }}>Yes, deliberately create a duplicate venue</label>
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <select
+                        style={{ ...styles.input, flex: 1, minWidth: '80px', backgroundColor: '#fff' }}
+                        value={newVenueData.country} onChange={e => setNewVenueData({ ...newVenueData, country: e.target.value })}
+                      >
+                        <option value="">Country...</option>
+                        {COMMON_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+
+                      {newVenueData.country && newVenueData.country.toUpperCase() === 'USA' ? (
+                        <select
+                          style={{ ...styles.input, flex: 1, minWidth: '80px', backgroundColor: '#fff' }}
+                          value={newVenueData.region} onChange={e => setNewVenueData({ ...newVenueData, region: e.target.value })}
+                        >
+                          <option value="">State...</option>
+                          {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          placeholder="Region / State"
+                          value={newVenueData.region}
+                          onChange={(e) => setNewVenueData({ ...newVenueData, region: e.target.value })}
+                          style={{ ...styles.input, flex: 1, minWidth: '80px' }}
+                        />
+                      )}
+
+                      <input
+                        type="text"
+                        placeholder="City"
+                        value={newVenueData.city}
+                        onChange={(e) => setNewVenueData({ ...newVenueData, city: e.target.value })}
+                        style={{ ...styles.input, flex: 1, minWidth: '80px' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input
+                        type="number" step="any"
+                        placeholder="Latitude (For Map)"
+                        value={newVenueData.lat}
+                        onChange={(e) => setNewVenueData({ ...newVenueData, lat: e.target.value })}
+                        style={{ ...styles.input, flex: 1, minWidth: 0 }}
+                      />
+                      <input
+                        type="number" step="any"
+                        placeholder="Longitude (For Map)"
+                        value={newVenueData.long}
+                        onChange={(e) => setNewVenueData({ ...newVenueData, long: e.target.value })}
+                        style={{ ...styles.input, flex: 1, minWidth: 0 }}
+                      />
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Tour Name</label>
+              <input
+                type="text"
+                name="tour_name"
+                value={formData.tour_name}
+                onChange={handleChange}
+                style={styles.input}
+                placeholder="e.g. The Black Parade Tour"
+              />
+            </div>
+
+            <div style={styles.checkboxGroup}>
+              <input
+                type="checkbox"
+                id="festival"
+                name="festival"
+                checked={formData.festival}
+                onChange={handleChange}
+                style={styles.checkbox}
+              />
+              <label htmlFor="festival" style={styles.checkboxLabel}>This event was a multi-day/multi-stage festival</label>
             </div>
           </div>
 
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Notes / Setlist</label>
-            <textarea
-              name="notes"
-              value={formData.notes}
-              onChange={handleChange}
-              style={{ ...styles.input, minHeight: '80px', resize: 'vertical' }}
-              placeholder="Memories, setlist, support acts..."
-            />
+          {/* SECTION 2: Lineup & People */}
+          <div style={styles.section}>
+            <h3 style={styles.sectionHeader}>Lineup &amp; People</h3>
+
+            <div style={{ ...styles.formGroup, padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <label style={{ ...styles.label, display: 'flex', justifyContent: 'space-between' }}>
+                <span>Artist Lineup <span style={styles.required}>*</span></span>
+                <span style={{ fontSize: '0.75rem', fontWeight: '400' }}>Hit Enter to add</span>
+              </label>
+              <div style={tagStyles.tagContainer}>
+                {selectedArtists.map(artist => (
+                  <div key={artist.name} style={tagStyles.tag}>
+                    <span>{artist.name}</span>
+                    <button type="button" onClick={() => removeArtist(artist.name)} style={tagStyles.tagRemove} title="Remove Act">
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', alignItems: 'center', width: '100%', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
+                  <SpotifyArtistAutocomplete 
+                    onSelectArtist={handleSelectArtist} 
+                    style={tagStyles.tagInput}
+                    placeholder={selectedArtists.length === 0 ? "Search Spotify for an artist..." : "Add another act..."}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div style={{ ...styles.formGroup, padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <label style={{ ...styles.label, display: 'flex', justifyContent: 'space-between' }}>
+                <span>Attendees (Optional)</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: '400' }}>Hit Enter to add friends</span>
+              </label>
+              <div style={{ ...tagStyles.tagContainer, borderColor: '#cbd5e1' }}>
+                {selectedAttendees.map(att => (
+                  <div key={att} style={{ ...tagStyles.tag, backgroundColor: '#64748b' }}>
+                    <span>{att}</span>
+                    <button type="button" onClick={() => removeAttendee(att)} style={tagStyles.tagRemove} title="Remove Attendee">
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', alignItems: 'center', width: '100%', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
+                  <input
+                    ref={attendeeInputRef}
+                    list="attendee-suggestions"
+                    type="text"
+                    value={attendeeInput}
+                    onChange={e => setAttendeeInput(e.target.value)}
+                    onKeyDown={handleAttendeeKeyDown}
+                    style={tagStyles.tagInput}
+                    placeholder="Who went with you? (press Enter)"
+                  />
+                  <button type="button" onClick={(e) => handleAttendeeKeyDown({ key: 'Enter', preventDefault: () => e.preventDefault() })} style={{ backgroundColor: 'var(--text-primary)', color: 'white', border: 'none', borderRadius: '4px', padding: '0.4rem 0.8rem', cursor: 'pointer', fontWeight: 'bold' }}>Add</button>
+                </div>
+                <datalist id="attendee-suggestions">
+                  {ObjectSort(data.attendees, 'name').map(a => (
+                    <option key={a.id} value={a.name} />
+                  ))}
+                </datalist>
+              </div>
+            </div>
           </div>
 
-          <div style={styles.checkboxGroup}>
-            <input
-              type="checkbox"
-              id="festival"
-              name="festival"
-              checked={formData.festival}
-              onChange={handleChange}
-              style={styles.checkbox}
-            />
-            <label htmlFor="festival" style={styles.checkboxLabel}>This event was a multi-day/multi-stage festival</label>
+          {/* SECTION 3: Notes */}
+          <div style={styles.section}>
+            <h3 style={styles.sectionHeader}>Notes</h3>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Notes / Setlist</label>
+              <textarea
+                name="notes"
+                value={formData.notes}
+                onChange={handleChange}
+                style={{ ...styles.input, minHeight: '80px', resize: 'vertical' }}
+                placeholder="Memories, setlist, support acts..."
+              />
+            </div>
           </div>
 
           <button type="submit" disabled={loading} style={styles.submitBtn}>
@@ -635,7 +656,9 @@ const styles = {
   header: { marginBottom: '2rem' },
   pageTitle: { fontSize: '2rem', fontWeight: 'bold', margin: '0 0 0.5rem 0', color: 'var(--text-primary)' },
   pageSubtitle: { margin: 0, color: 'var(--text-muted)' },
-  formContainer: { backgroundColor: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '2rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '1.5rem' },
+  formContainer: { backgroundColor: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '2rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '2rem' },
+  section: { display: 'flex', flexDirection: 'column', gap: '1.5rem' },
+  sectionHeader: { fontSize: '1.25rem', fontWeight: '600', color: 'var(--text-primary)', margin: '0 0 0.5rem 0', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' },
   errorBanner: { padding: '1rem', backgroundColor: '#ffebee', color: '#c62828', borderRadius: '6px', border: '1px solid #c62828', fontSize: '0.875rem' },
   formGroup: { display: 'flex', flexDirection: 'column', gap: '0.5rem' },
   rowGroup: { display: 'flex', gap: '1.5rem', flexWrap: 'wrap' },

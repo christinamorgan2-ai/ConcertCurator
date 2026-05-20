@@ -87,12 +87,24 @@ export const TicketmasterAutocomplete = ({ onSelectEvent, placeholder, style, va
        artists = event._embedded.attractions.map(a => a.name);
     }
     
+    let tourName = '';
+    if (event.name && event.name.toLowerCase().includes('tour')) {
+       const parts = event.name.split(/\s+-\s+|:\s+|\s+\|\s+/);
+       const tourPart = parts.find(p => p.toLowerCase().includes('tour'));
+       if (tourPart) {
+           tourName = tourPart.trim();
+       } else {
+           tourName = event.name.trim();
+       }
+    }
+
     onSelectEvent({
       name: event.name,
       date,
       time,
       venue,
-      artists
+      artists,
+      tourName
     });
   };
 

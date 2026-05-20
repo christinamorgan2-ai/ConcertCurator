@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+
+# Local scripts / seed files
+seed_supabase.js
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

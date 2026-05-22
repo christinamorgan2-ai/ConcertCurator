@@ -3,7 +3,7 @@ import { supabase } from '../supabaseClient';
 import { sharedTableStyles as styles } from './ConcertsPage';
 import { Edit2, Save, X, Trash2, RefreshCw } from 'lucide-react';
 import { SpotifyArtistAutocomplete } from '../components/SpotifyArtistAutocomplete';
-import { fetchArtistGenres } from '../utils/musicBrainz';
+import { fetchArtistMetadata } from '../utils/musicBrainz';
 
 const formatNum = (num) => {
   if (!num) return '-';
@@ -26,6 +26,7 @@ export const ArtistsPage = ({ data, refreshData }) => {
   
   const [syncingArtist, setSyncingArtist] = useState(null);
   const [proposedGenres, setProposedGenres] = useState([]);
+  const [proposedFirstAlbumYear, setProposedFirstAlbumYear] = useState(null);
   const [keepCustomGenres, setKeepCustomGenres] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   
@@ -58,7 +59,7 @@ export const ArtistsPage = ({ data, refreshData }) => {
     setLoading(true);
     try {
       const artistId = crypto.randomUUID();
-      const mbGenres = await fetchArtistGenres(cleanName);
+      const { tags: mbGenres, firstAlbumYear: mbFirstAlbumYear } = await fetchArtistMetadata(cleanName);
       const artistGenres = mbGenres.length > 0 ? mbGenres : (artistObj.genres || []);
       let primaryGenreId = null;
       const newGenresToInsert = [];
@@ -104,6 +105,7 @@ export const ArtistsPage = ({ data, refreshData }) => {
         id: artistId, 
         name: cleanName,
         primary_genre_id: primaryGenreId,
+        first_album_year: mbFirstAlbumYear,
         spotify_listeners: artistObj.followers || null
       }]);
       if (insertErr) throw insertErr;
@@ -304,11 +306,13 @@ export const ArtistsPage = ({ data, refreshData }) => {
     setSyncingArtist(artist);
     setIsSyncing(true);
     try {
-      const tags = await fetchArtistGenres(artist.name);
+      const { tags, firstAlbumYear } = await fetchArtistMetadata(artist.name);
       setProposedGenres(tags);
+      setProposedFirstAlbumYear(firstAlbumYear);
     } catch (err) {
       console.error("Sync fetch error:", err);
       setProposedGenres([]);
+      setProposedFirstAlbumYear(null);
     } finally {
       setIsSyncing(false);
     }
@@ -318,7 +322,7 @@ export const ArtistsPage = ({ data, refreshData }) => {
     if (!syncingArtist) return;
     setLoading(true);
     try {
-      if (proposedGenres.length === 0) {
+      if (proposedGenres.length === 0 && proposedFirstAlbumYear === null) {
         setSyncingArtist(null);
         return;
       }
@@ -378,18 +382,30 @@ export const ArtistsPage = ({ data, refreshData }) => {
          }
       }
 
-      // 3. Update primary genre on artist
-      const { error: upErr } = await supabase.from('artists')
-         .update({ primary_genre_id: primaryGenreId })
-         .eq('id', syncingArtist.id);
-      if (upErr) throw upErr;
+      // 3. Update primary genre and first album year on artist
+      const updatePayload = {};
+      if (primaryGenreId) {
+        updatePayload.primary_genre_id = primaryGenreId;
+      }
+      if (proposedFirstAlbumYear !== null) {
+        updatePayload.first_album_year = proposedFirstAlbumYear;
+      }
 
-      // 4. Wipe existing bridge and replace
-      await supabase.from('artist_genre_bridge').delete().eq('artist_id', syncingArtist.id);
-      
-      if (genreBridgeInserts.length > 0) {
-         const { error: gbErr } = await supabase.from('artist_genre_bridge').insert(genreBridgeInserts);
-         if (gbErr) throw new Error("Failed to insert artist genres: " + gbErr.message);
+      if (Object.keys(updatePayload).length > 0) {
+        const { error: upErr } = await supabase.from('artists')
+           .update(updatePayload)
+           .eq('id', syncingArtist.id);
+        if (upErr) throw upErr;
+      }
+
+      // 4. Wipe existing bridge and replace only if we have new genres
+      if (proposedGenres.length > 0) {
+        await supabase.from('artist_genre_bridge').delete().eq('artist_id', syncingArtist.id);
+        
+        if (genreBridgeInserts.length > 0) {
+           const { error: gbErr } = await supabase.from('artist_genre_bridge').insert(genreBridgeInserts);
+           if (gbErr) throw new Error("Failed to insert artist genres: " + gbErr.message);
+        }
       }
 
       setSyncingArtist(null);
@@ -431,15 +447,14 @@ export const ArtistsPage = ({ data, refreshData }) => {
                 <th style={styles.th}>Artist</th>
                 <th style={styles.th}>Primary Genre</th>
                 <th style={styles.th}>All Genres</th>
-                <th style={styles.th}>Custom Categories from Settings</th>
-                <th style={styles.th}>Listeners</th>
+
                 <th style={styles.th}>Concerts Logged</th>
                 <th style={{ ...styles.th, textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {data.artists.length === 0 ? (
-                <tr><td colSpan="7" style={styles.emptyCell}>No artists found.</td></tr>
+                <tr><td colSpan="5" style={styles.emptyCell}>No artists found.</td></tr>
               ) : (
                 [...data.artists].sort((a, b) => a.name.localeCompare(b.name)).map(artist => {
                   const isEditing = editingId === artist.id;
@@ -450,7 +465,7 @@ export const ArtistsPage = ({ data, refreshData }) => {
                       <React.Fragment key={artist.id}>
                         {editError && (
                           <tr>
-                            <td colSpan="7" style={{ padding: '0.75rem', backgroundColor: '#ffebee', color: '#c62828', fontSize: '0.875rem', textAlign: 'center', border: '1px solid #c62828' }}>
+                            <td colSpan="5" style={{ padding: '0.75rem', backgroundColor: '#ffebee', color: '#c62828', fontSize: '0.875rem', textAlign: 'center', border: '1px solid #c62828' }}>
                               ⚠️ {editError}
                             </td>
                           </tr>
@@ -538,28 +553,7 @@ export const ArtistsPage = ({ data, refreshData }) => {
                               </datalist>
                             </div>
                           </td>
-                          <td data-label="Demographics" style={{ ...styles.td, padding: '0.75rem', width: '15%' }}>
-                            <select style={{ ...styles.inlineInput, width: '100%', padding: '0.3rem', marginBottom: '0.3rem' }} value={editData.tier} onChange={e => setEditData({ ...editData, tier: e.target.value })}>
-                              <option value="">Select Tier</option>
-                              {TIERS.map(t => <option key={t} value={t}>{t}</option>)}
-                            </select>
-                            <select style={{ ...styles.inlineInput, width: '100%', padding: '0.3rem', marginBottom: '0.3rem' }} value={editData.artist_type} onChange={e => setEditData({ ...editData, artist_type: e.target.value })}>
-                              <option value="">Select Type</option>
-                              {(userSettings.artist_types || []).map(t => <option key={t} value={t}>{t}</option>)}
-                            </select>
-                            <select style={{ ...styles.inlineInput, width: '100%', padding: '0.3rem' }} value={editData.ecosystem} onChange={e => setEditData({ ...editData, ecosystem: e.target.value })}>
-                              <option value="">Select Ecosystem</option>
-                              {(userSettings.ecosystems || []).map(t => <option key={t} value={t}>{t}</option>)}
-                            </select>
-                          </td>
-                          <td data-label="Listeners" style={{ ...styles.td, padding: '0.75rem', width: '15%' }}>
-                            <input
-                              style={{ ...styles.inlineInput, width: '100%', minWidth: '90px', padding: '0.4rem' }}
-                              placeholder="Monthly Listeners" type="number"
-                              value={editData.spotify_listeners}
-                              onChange={e => setEditData({ ...editData, spotify_listeners: e.target.value })}
-                            />
-                          </td>
+
                           <td data-label="Concerts Logged" style={{ ...styles.td, width: '5%' }}>
                             <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.75rem' }}>Readonly</span>
                           </td>
@@ -620,17 +614,7 @@ export const ArtistsPage = ({ data, refreshData }) => {
                           {genreTags.length === 0 && <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.8rem' }}>No tags</span>}
                         </div>
                       </td>
-                      <td data-label="Demographics" style={styles.td}>
-                        <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.8rem', gap: '0.2rem' }}>
-                          {artist.tier && <div><strong style={{ color: '#475569' }}>Tier:</strong> {artist.tier}</div>}
-                          {artist.artist_type && <div><strong style={{ color: '#475569' }}>Type:</strong> {artist.artist_type}</div>}
-                          {artist.ecosystem && <div><strong style={{ color: '#475569' }}>Eco:</strong> {artist.ecosystem}</div>}
-                          {!artist.tier && !artist.artist_type && !artist.ecosystem && <span style={{ color: '#94a3b8' }}>-</span>}
-                        </div>
-                      </td>
-                      <td data-label="Listeners" style={styles.td}>
-                        {artist.spotify_listeners ? <span style={{ color: '#1db954', fontWeight: '500' }}>{formatNum(artist.spotify_listeners)} mo</span> : <span style={{ color: '#94a3b8' }}>-</span>}
-                      </td>
+
                       <td data-label="Concerts Logged" style={styles.td}>
                         {concertCount > 0 ? (
                           <span style={{ backgroundColor: '#e2e8f0', color: '#0f172a', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>
@@ -683,42 +667,58 @@ export const ArtistsPage = ({ data, refreshData }) => {
             </div>
             
             <div style={{ padding: '1rem' }}>
-              <p style={{ marginBottom: '1rem', color: '#475569', fontSize: '0.95rem' }}>
-                Found <strong>{proposedGenres.length}</strong> tags from MusicBrainz for <strong>{syncingArtist.name}</strong>.
-              </p>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '1.5rem' }}>
-                <div>
-                  <strong style={{ fontSize: '0.85rem', color: '#64748b', display: 'block', marginBottom: '0.4rem' }}>PROPOSED PRIMARY GENRE</strong>
-                  {proposedGenres.length > 0 ? (
-                    <span style={{ fontWeight: 'bold', color: '#2563eb' }}>{proposedGenres[0]}</span>
-                  ) : (
-                    <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>None found</span>
-                  )}
+              {isSyncing ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem 0', gap: '1rem' }}>
+                  <RefreshCw size={36} className="spin-animation" style={{ color: '#2563eb' }} />
+                  <p style={{ color: '#475569', fontSize: '1rem', fontWeight: '500', margin: 0 }}>Magic Happening...</p>
                 </div>
-                
-                {proposedGenres.length > 1 && (
-                  <div>
-                    <strong style={{ fontSize: '0.85rem', color: '#64748b', display: 'block', marginBottom: '0.4rem' }}>PROPOSED SECONDARY TAGS</strong>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                      {proposedGenres.slice(1).map(g => (
-                        <span key={g} style={{ fontSize: '0.75rem', backgroundColor: '#dbeafe', color: '#1e40af', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>{g}</span>
-                      ))}
+              ) : (
+                <>
+                  <p style={{ marginBottom: '1rem', color: '#475569', fontSize: '0.95rem' }}>
+                    Found <strong>{proposedGenres.length}</strong> tags from MusicBrainz for <strong>{syncingArtist.name}</strong>.
+                  </p>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '1.5rem' }}>
+                    <div>
+                      <strong style={{ fontSize: '0.85rem', color: '#64748b', display: 'block', marginBottom: '0.4rem' }}>PROPOSED PRIMARY GENRE</strong>
+                      {proposedGenres.length > 0 ? (
+                        <span style={{ fontWeight: 'bold', color: '#2563eb' }}>{proposedGenres[0]}</span>
+                      ) : (
+                        <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>None found</span>
+                      )}
                     </div>
+                    
+                    {proposedGenres.length > 1 && (
+                      <div>
+                        <strong style={{ fontSize: '0.85rem', color: '#64748b', display: 'block', marginBottom: '0.4rem' }}>PROPOSED SECONDARY TAGS</strong>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                          {proposedGenres.slice(1).map(g => (
+                            <span key={g} style={{ fontSize: '0.75rem', backgroundColor: '#dbeafe', color: '#1e40af', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>{g}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {proposedFirstAlbumYear && (
+                      <div>
+                        <strong style={{ fontSize: '0.85rem', color: '#64748b', display: 'block', marginBottom: '0.4rem' }}>PROPOSED FIRST ALBUM YEAR</strong>
+                        <span style={{ fontWeight: 'bold', color: '#0f172a' }}>{proposedFirstAlbumYear}</span>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
 
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', marginBottom: '1rem' }}>
-                <input 
-                  type="checkbox" 
-                  checked={keepCustomGenres} 
-                  onChange={(e) => setKeepCustomGenres(e.target.checked)} 
-                />
-                <span style={{ fontSize: '0.9rem', color: '#334155' }}>
-                  Keep my previously entered custom genres as secondary tags
-                </span>
-              </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', marginBottom: '1rem' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={keepCustomGenres} 
+                      onChange={(e) => setKeepCustomGenres(e.target.checked)} 
+                    />
+                    <span style={{ fontSize: '0.9rem', color: '#334155' }}>
+                      Keep my previously entered custom genres as secondary tags
+                    </span>
+                  </label>
+                </>
+              )}
 
               {error && <div style={{ color: '#dc2626', fontSize: '0.875rem', marginBottom: '1rem' }}>{error}</div>}
 
@@ -732,7 +732,7 @@ export const ArtistsPage = ({ data, refreshData }) => {
                 </button>
                 <button 
                   onClick={confirmSync} 
-                  disabled={loading || proposedGenres.length === 0}
+                  disabled={loading || (proposedGenres.length === 0 && proposedFirstAlbumYear === null)}
                   style={{ ...modalStyles.submitBtn, backgroundColor: '#2563eb' }}
                 >
                   {loading ? 'Saving...' : 'Accept & Overwrite'}

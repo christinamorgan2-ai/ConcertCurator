@@ -1,3 +1,8 @@
+# Welcome 
+
+Welcometo Concert Curator my passion project that helps me keep track of all the concerts I've been to! It's helped me expand my data vizz skills, branching out from Tableau and Power BI to something more flexible and fun!
+
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

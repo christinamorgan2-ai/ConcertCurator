@@ -78,14 +78,23 @@ const MultiSelectDropdown = ({ options, selected, onChange, placeholder }) => {
 };
 
 export const DashboardPage = ({ data }) => {
-  const [dateStart, setDateStart] = useState('');
-  const [dateEnd, setDateEnd] = useState('');
+  const [dateFilter, setDateFilter] = useState('all_time');
   const [selectedArtists, setSelectedArtists] = useState([]);
+  const [selectedVenues, setSelectedVenues] = useState([]);
+  const [selectedGenres, setSelectedGenres] = useState([]);
 
-  // Sort artists alphabetically for the dropdown selection mapping
+  // Sort dropdown selection options alphabetically
   const sortedArtists = useMemo(() => {
     return [...(data.artists || [])].sort((a,b) => (a.name||'').localeCompare(b.name||''));
   }, [data.artists]);
+
+  const sortedVenues = useMemo(() => {
+    return [...(data.venues || [])].sort((a,b) => (a.name||'').localeCompare(b.name||''));
+  }, [data.venues]);
+
+  const sortedGenres = useMemo(() => {
+    return [...(data.genres || [])].sort((a,b) => (a.name||'').localeCompare(b.name||''));
+  }, [data.genres]);
 
   // Compute a subset of data dynamically based on the active filters
   const filteredData = useMemo(() => {
@@ -93,20 +102,41 @@ export const DashboardPage = ({ data }) => {
 
     let validConcerts = [...data.concerts];
 
+    // Filter by Date
+    if (dateFilter === 'this_year') {
+      const currentYear = new Date().getFullYear();
+      validConcerts = validConcerts.filter(c => new Date(c.date).getFullYear() === currentYear);
+    } else if (dateFilter === 'last_12_months') {
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      validConcerts = validConcerts.filter(c => new Date(c.date) >= oneYearAgo);
+    }
+
     // Filter by Artist Bridge subsetting logic
     if (selectedArtists.length > 0) {
       validConcerts = validConcerts.filter(c => 
         data.concertArtistBridge.some(bridge => bridge.ConcertID === c.ConcertID && selectedArtists.includes(bridge.ArtistID))
       );
     }
-    
-    // Filter by Absolute Date
-    if (dateStart) {
-      // Must pad localized ISO dates to ensure timezone isn't offsetting the logic visually
-      validConcerts = validConcerts.filter(c => new Date(c.date) >= new Date(dateStart + 'T00:00:00'));
+
+    // Filter by Venue
+    if (selectedVenues.length > 0) {
+      validConcerts = validConcerts.filter(c => selectedVenues.includes(c.VenueID));
     }
-    if (dateEnd) {
-      validConcerts = validConcerts.filter(c => new Date(c.date) <= new Date(dateEnd + 'T23:59:59'));
+
+    // Filter by Genre (OR logic)
+    if (selectedGenres.length > 0) {
+      validConcerts = validConcerts.filter(c => {
+        const concertArtists = data.concertArtistBridge
+          .filter(b => b.ConcertID === c.ConcertID)
+          .map(b => b.ArtistID);
+          
+        const concertGenres = data.artistGenreBridge
+          .filter(b => concertArtists.includes(b.ArtistID))
+          .map(b => b.GenreID);
+          
+        return concertGenres.some(g => selectedGenres.includes(g));
+      });
     }
 
     // Extract corresponding valid nodes from the subsetted valid concerts
@@ -129,15 +159,16 @@ export const DashboardPage = ({ data }) => {
       venues: validVenues,
       concertArtistBridge: validConcertArtistBridge
     };
-  }, [data, selectedArtists, dateStart, dateEnd]);
+  }, [data, dateFilter, selectedArtists, selectedVenues, selectedGenres]);
 
   const clearFilters = () => {
-    setDateStart('');
-    setDateEnd('');
+    setDateFilter('all_time');
     setSelectedArtists([]);
+    setSelectedVenues([]);
+    setSelectedGenres([]);
   };
 
-  const isFiltered = dateStart !== '' || dateEnd !== '' || selectedArtists.length > 0;
+  const isFiltered = dateFilter !== 'all_time' || selectedArtists.length > 0 || selectedVenues.length > 0 || selectedGenres.length > 0;
 
   return (
     <div style={styles.page}>
@@ -148,45 +179,72 @@ export const DashboardPage = ({ data }) => {
       
       {/* Dynamic Filter Strip component container */}
       <div style={styles.filterStrip}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontWeight: 'bold', fontSize: '0.9rem', marginRight: '1rem' }}>
-          <Filter size={18} /> Filters:
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontWeight: 'bold', fontSize: '0.9rem', width: '100%' }}>
+          <Filter size={18} /> Filters
         </div>
         
-        <div style={styles.filterGroup}>
-          <label style={styles.filterLabel}>Start Date</label>
-          <input 
-            type="date" 
-            value={dateStart} 
-            onChange={(e) => setDateStart(e.target.value)} 
-            style={styles.filterInput}
-          />
-        </div>
-
-        <div style={styles.filterGroup}>
-          <label style={styles.filterLabel}>End Date</label>
-          <input 
-            type="date" 
-            value={dateEnd} 
-            onChange={(e) => setDateEnd(e.target.value)} 
-            style={styles.filterInput}
-          />
-        </div>
-
-        <div style={styles.filterGroup}>
-          <label style={styles.filterLabel}>Artists</label>
-          <MultiSelectDropdown 
-            options={sortedArtists} 
-            selected={selectedArtists} 
-            onChange={setSelectedArtists} 
-            placeholder="All Artists"
-          />
-        </div>
-
-        {isFiltered && (
-          <button onClick={clearFilters} style={styles.clearBtn} title="Reset all views">
-            Clear All
+        {/* Row 1: Date Chips */}
+        <div style={{ display: 'flex', gap: '0.5rem', width: '100%', flexWrap: 'wrap' }}>
+          <button 
+            style={dateFilter === 'this_year' ? styles.chipActive : styles.chipInactive} 
+            onClick={() => setDateFilter('this_year')}
+          >
+            This Year
           </button>
-        )}
+          <button 
+            style={dateFilter === 'last_12_months' ? styles.chipActive : styles.chipInactive} 
+            onClick={() => setDateFilter('last_12_months')}
+          >
+            Last 12 Months
+          </button>
+          <button 
+            style={dateFilter === 'all_time' ? styles.chipActive : styles.chipInactive} 
+            onClick={() => setDateFilter('all_time')}
+          >
+            All Time
+          </button>
+        </div>
+
+        {/* Row 2: Dropdowns */}
+        <div style={{ display: 'flex', gap: '1rem', width: '100%', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+          <div style={styles.filterGroup}>
+            <label style={styles.filterLabel}>Artists</label>
+            <MultiSelectDropdown 
+              options={sortedArtists} 
+              selected={selectedArtists} 
+              onChange={setSelectedArtists} 
+              placeholder="All Artists"
+            />
+          </div>
+
+          <div style={styles.filterGroup}>
+            <label style={styles.filterLabel}>Venues</label>
+            <MultiSelectDropdown 
+              options={sortedVenues} 
+              selected={selectedVenues} 
+              onChange={setSelectedVenues} 
+              placeholder="All Venues"
+            />
+          </div>
+
+          <div style={styles.filterGroup}>
+            <label style={styles.filterLabel}>Genres</label>
+            <MultiSelectDropdown 
+              options={sortedGenres} 
+              selected={selectedGenres} 
+              onChange={setSelectedGenres} 
+              placeholder="All Genres"
+            />
+          </div>
+
+          {isFiltered && (
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <button onClick={clearFilters} style={{ ...styles.clearBtn, marginTop: 0 }} title="Reset all filters">
+                Clear All
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <main>
@@ -246,15 +304,36 @@ const styles = {
   },
   filterStrip: {
     display: 'flex',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: '1rem',
+    flexDirection: 'column',
+    gap: '0.75rem',
     backgroundColor: '#ffffff',
-    padding: '1rem 1.5rem',
+    padding: '1.25rem 1.5rem',
     borderRadius: '12px',
     border: '1px solid var(--border-color)',
     marginBottom: '2rem',
     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
+  },
+  chipActive: {
+    padding: '0.4rem 1rem',
+    borderRadius: '20px',
+    border: 'none',
+    backgroundColor: 'var(--text-primary)',
+    color: '#ffffff',
+    fontSize: '0.85rem',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
+  },
+  chipInactive: {
+    padding: '0.4rem 1rem',
+    borderRadius: '20px',
+    border: '1px solid #cbd5e1',
+    backgroundColor: '#f8fafc',
+    color: '#64748b',
+    fontSize: '0.85rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s, color 0.2s',
   },
   filterGroup: {
     display: 'flex',

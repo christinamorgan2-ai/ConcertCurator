@@ -83,14 +83,25 @@ export const PublicDashboardPage = () => {
   const navigate = useNavigate();
   const { data, loading, error } = usePublicDashboardData(id);
 
-  const [dateStart, setDateStart] = useState('');
-  const [dateEnd, setDateEnd] = useState('');
+  const [dateFilter, setDateFilter] = useState('all_time');
   const [selectedArtists, setSelectedArtists] = useState([]);
+  const [selectedVenues, setSelectedVenues] = useState([]);
+  const [selectedGenres, setSelectedGenres] = useState([]);
 
   // Sort artists alphabetically for the dropdown selection mapping
   const sortedArtists = useMemo(() => {
     if (!data || !data.artists) return [];
     return [...data.artists].sort((a,b) => (a.name||'').localeCompare(b.name||''));
+  }, [data]);
+
+  const sortedVenues = useMemo(() => {
+    if (!data || !data.venues) return [];
+    return [...data.venues].sort((a,b) => (a.name||'').localeCompare(b.name||''));
+  }, [data]);
+
+  const sortedGenres = useMemo(() => {
+    if (!data || !data.genres) return [];
+    return [...data.genres].sort((a,b) => (a.name||'').localeCompare(b.name||''));
   }, [data]);
 
   // Compute a subset of data dynamically based on the active filters
@@ -99,6 +110,16 @@ export const PublicDashboardPage = () => {
 
     let validConcerts = [...data.concerts];
 
+    // Filter by Date
+    if (dateFilter === 'this_year') {
+      const currentYear = new Date().getFullYear();
+      validConcerts = validConcerts.filter(c => new Date(c.date).getFullYear() === currentYear);
+    } else if (dateFilter === 'last_12_months') {
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      validConcerts = validConcerts.filter(c => new Date(c.date) >= oneYearAgo);
+    }
+
     // Filter by Artist Bridge subsetting logic
     if (selectedArtists.length > 0 && data.concertArtistBridge) {
       validConcerts = validConcerts.filter(c => 
@@ -106,12 +127,24 @@ export const PublicDashboardPage = () => {
       );
     }
     
-    // Filter by Absolute Date
-    if (dateStart) {
-      validConcerts = validConcerts.filter(c => new Date(c.date) >= new Date(dateStart + 'T00:00:00'));
+    // Filter by Venue
+    if (selectedVenues.length > 0) {
+      validConcerts = validConcerts.filter(c => selectedVenues.includes(c.VenueID));
     }
-    if (dateEnd) {
-      validConcerts = validConcerts.filter(c => new Date(c.date) <= new Date(dateEnd + 'T23:59:59'));
+
+    // Filter by Genre (OR logic)
+    if (selectedGenres.length > 0 && data.artistGenreBridge && data.concertArtistBridge) {
+      validConcerts = validConcerts.filter(c => {
+        const concertArtists = data.concertArtistBridge
+          .filter(b => b.ConcertID === c.ConcertID)
+          .map(b => b.ArtistID);
+          
+        const concertGenres = data.artistGenreBridge
+          .filter(b => concertArtists.includes(b.ArtistID))
+          .map(b => b.GenreID);
+          
+        return concertGenres.some(g => selectedGenres.includes(g));
+      });
     }
 
     // Extract corresponding valid nodes from the subsetted valid concerts
@@ -134,12 +167,13 @@ export const PublicDashboardPage = () => {
       venues: validVenues,
       concertArtistBridge: validConcertArtistBridge
     };
-  }, [data, selectedArtists, dateStart, dateEnd]);
+  }, [data, dateFilter, selectedArtists, selectedVenues, selectedGenres]);
 
   const clearFilters = () => {
-    setDateStart('');
-    setDateEnd('');
+    setDateFilter('all_time');
     setSelectedArtists([]);
+    setSelectedVenues([]);
+    setSelectedGenres([]);
   };
 
   if (loading) return <div style={{ padding: '4rem', textAlign: 'center', color: '#94a3b8' }}>Loading public profile...</div>;
@@ -152,7 +186,7 @@ export const PublicDashboardPage = () => {
     </div>
   );
 
-  const isFiltered = dateStart !== '' || dateEnd !== '' || selectedArtists.length > 0;
+  const isFiltered = dateFilter !== 'all_time' || selectedArtists.length > 0 || selectedVenues.length > 0 || selectedGenres.length > 0;
 
   return (
     <div style={styles.page}>
@@ -166,45 +200,72 @@ export const PublicDashboardPage = () => {
       
       {/* Dynamic Filter Strip component container */}
       <div style={styles.filterStrip}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontWeight: 'bold', fontSize: '0.9rem', marginRight: '1rem' }}>
-          <Filter size={18} /> Filters:
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontWeight: 'bold', fontSize: '0.9rem', width: '100%' }}>
+          <Filter size={18} /> Filters
         </div>
         
-        <div style={styles.filterGroup}>
-          <label style={styles.filterLabel}>Start Date</label>
-          <input 
-            type="date" 
-            value={dateStart} 
-            onChange={(e) => setDateStart(e.target.value)} 
-            style={styles.filterInput}
-          />
-        </div>
-
-        <div style={styles.filterGroup}>
-          <label style={styles.filterLabel}>End Date</label>
-          <input 
-            type="date" 
-            value={dateEnd} 
-            onChange={(e) => setDateEnd(e.target.value)} 
-            style={styles.filterInput}
-          />
-        </div>
-
-        <div style={styles.filterGroup}>
-          <label style={styles.filterLabel}>Artists</label>
-          <MultiSelectDropdown 
-            options={sortedArtists} 
-            selected={selectedArtists} 
-            onChange={setSelectedArtists} 
-            placeholder="All Artists"
-          />
-        </div>
-
-        {isFiltered && (
-          <button onClick={clearFilters} style={styles.clearBtn} title="Reset all views">
-            Clear All
+        {/* Row 1: Date Chips */}
+        <div style={{ display: 'flex', gap: '0.5rem', width: '100%', flexWrap: 'wrap' }}>
+          <button 
+            style={dateFilter === 'this_year' ? styles.chipActive : styles.chipInactive} 
+            onClick={() => setDateFilter('this_year')}
+          >
+            This Year
           </button>
-        )}
+          <button 
+            style={dateFilter === 'last_12_months' ? styles.chipActive : styles.chipInactive} 
+            onClick={() => setDateFilter('last_12_months')}
+          >
+            Last 12 Months
+          </button>
+          <button 
+            style={dateFilter === 'all_time' ? styles.chipActive : styles.chipInactive} 
+            onClick={() => setDateFilter('all_time')}
+          >
+            All Time
+          </button>
+        </div>
+
+        {/* Row 2: Dropdowns */}
+        <div style={{ display: 'flex', gap: '1rem', width: '100%', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+          <div style={styles.filterGroup}>
+            <label style={styles.filterLabel}>Artists</label>
+            <MultiSelectDropdown 
+              options={sortedArtists} 
+              selected={selectedArtists} 
+              onChange={setSelectedArtists} 
+              placeholder="All Artists"
+            />
+          </div>
+
+          <div style={styles.filterGroup}>
+            <label style={styles.filterLabel}>Venues</label>
+            <MultiSelectDropdown 
+              options={sortedVenues} 
+              selected={selectedVenues} 
+              onChange={setSelectedVenues} 
+              placeholder="All Venues"
+            />
+          </div>
+
+          <div style={styles.filterGroup}>
+            <label style={styles.filterLabel}>Genres</label>
+            <MultiSelectDropdown 
+              options={sortedGenres} 
+              selected={selectedGenres} 
+              onChange={setSelectedGenres} 
+              placeholder="All Genres"
+            />
+          </div>
+
+          {isFiltered && (
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <button onClick={clearFilters} style={{ ...styles.clearBtn, marginTop: 0 }} title="Reset all filters">
+                Clear All
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <main>
@@ -245,11 +306,13 @@ const styles = {
   header: { marginBottom: '1.5rem' },
   pageTitle: { fontSize: '2rem', fontWeight: 'bold', margin: '0 0 0.5rem 0' },
   pageSubtitle: { margin: 0, color: 'var(--text-muted)' },
-  filterStrip: { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', backgroundColor: '#ffffff', padding: '1rem 1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '2rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' },
+  filterStrip: { display: 'flex', flexDirection: 'column', gap: '0.75rem', backgroundColor: '#ffffff', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '2rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' },
+  chipActive: { padding: '0.4rem 1rem', borderRadius: '20px', border: 'none', backgroundColor: 'var(--text-primary)', color: '#ffffff', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' },
+  chipInactive: { padding: '0.4rem 1rem', borderRadius: '20px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', color: '#64748b', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer', transition: 'background-color 0.2s, color 0.2s' },
   filterGroup: { display: 'flex', flexDirection: 'column', gap: '0.35rem' },
   filterLabel: { fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' },
   filterInput: { padding: '0.6rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem', backgroundColor: '#ffffff', outline: 'none', boxSizing: 'border-box', color: '#1e293b', fontFamily: 'inherit', height: '42px' },
-  clearBtn: { marginTop: '1.4rem', padding: '0.6rem 1rem', border: 'none', background: '#fee2e2', color: '#b91c1c', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', height: '42px', display: 'flex', alignItems: 'center', transition: 'background-color 0.2s' },
+  clearBtn: { padding: '0.6rem 1rem', border: 'none', background: '#fee2e2', color: '#b91c1c', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', height: '42px', display: 'flex', alignItems: 'center', transition: 'background-color 0.2s' },
   dropdownPopup: { position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '4px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)', zIndex: 50, display: 'flex', flexDirection: 'column' },
   dropdownList: { maxHeight: '200px', overflowY: 'auto', padding: '0.25rem 0' },
   dropdownItem: { display: 'flex', alignItems: 'center', padding: '0.5rem 1rem', cursor: 'pointer', fontSize: '0.9rem', color: '#334155', transition: 'background-color 0.15s' },

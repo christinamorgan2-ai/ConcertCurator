@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { Edit2, Save, X, Trash2, FileText, CalendarPlus } from 'lucide-react';
 import { SpotifyArtistAutocomplete } from '../components/SpotifyArtistAutocomplete';
-import { fetchArtistGenres } from '../utils/musicBrainz';
+import { fetchArtistMetadata } from '../utils/musicBrainz';
 import { generateConcertIcs, generateGoogleCalendarUrl, generateOutlookCalendarUrl } from '../utils/ics';
 
 const ObjectSort = (arr, key) => [...arr].sort((a, b) => (a[key] || '').localeCompare(b[key] || ''));
@@ -218,7 +218,7 @@ export const ConcertsPage = ({ data, refreshData }) => {
         } else {
           artistId = crypto.randomUUID();
 
-          const mbGenres = await fetchArtistGenres(artistName);
+          const { tags: mbGenres, firstAlbumYear: mbFirstAlbumYear } = await fetchArtistMetadata(artistName);
           if (mbGenres.length > 0) {
             artistGenres = mbGenres;
           }
@@ -241,6 +241,7 @@ export const ConcertsPage = ({ data, refreshData }) => {
             id: artistId,
             name: artistName,
             primary_genre_id: primaryGenreId,
+            first_album_year: mbFirstAlbumYear,
             spotify_listeners: artistObj.followers || null
           });
 
@@ -565,7 +566,19 @@ export const ConcertsPage = ({ data, refreshData }) => {
                         {attendeeList ? <span style={{ color: '#64748b', fontWeight: '500' }}>{attendeeList}</span> : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No attendees</span>}
                       </td>
                       <td data-label="Tour Name" style={sharedTableStyles.td}>{c.tour_name || '-'}</td>
-                      <td data-label="Venue" style={sharedTableStyles.td}>{venue ? venue.name : 'Unknown'}</td>
+                      <td data-label="Venue" style={sharedTableStyles.td}>
+                        {venue ? (
+                          <span 
+                            title={[venue.city, venue.region].filter(Boolean).join(', ') || undefined} 
+                            style={{ 
+                              cursor: venue.city || venue.region ? 'help' : 'default', 
+                              borderBottom: venue.city || venue.region ? '1px dotted #94a3b8' : 'none' 
+                            }}
+                          >
+                            {venue.name}
+                          </span>
+                        ) : 'Unknown'}
+                      </td>
                       <td data-label="Actions" style={{ ...sharedTableStyles.td, textAlign: 'right', whiteSpace: 'nowrap' }}>
                         {isDeleting ? (
                           <>

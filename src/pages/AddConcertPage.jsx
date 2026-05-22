@@ -4,7 +4,7 @@ import { supabase } from '../supabaseClient';
 import { X, Wand2 } from 'lucide-react';
 import { SpotifyArtistAutocomplete } from '../components/SpotifyArtistAutocomplete';
 import { TicketmasterAutocomplete } from '../components/TicketmasterAutocomplete';
-import { fetchArtistGenres } from '../utils/musicBrainz';
+import { fetchArtistMetadata } from '../utils/musicBrainz';
 
 const ObjectSort = (arr, key) => [...arr].sort((a, b) => (a[key] || '').localeCompare(b[key] || ''));
 
@@ -235,7 +235,7 @@ export const AddConcertPage = ({ data, refreshData }) => {
           // Fire creation of brand new artist
           artistId = crypto.randomUUID();
 
-          const mbGenres = await fetchArtistGenres(artistName);
+          const { tags: mbGenres, firstAlbumYear: mbFirstAlbumYear } = await fetchArtistMetadata(artistName);
           if (mbGenres.length > 0) {
             artistGenres = mbGenres;
           }
@@ -259,11 +259,12 @@ export const AddConcertPage = ({ data, refreshData }) => {
             id: artistId,
             name: artistName,
             primary_genre_id: primaryGenreId,
+            first_album_year: mbFirstAlbumYear,
             spotify_listeners: artistObj.followers || null
           });
 
           // Secondary genres (bridge)
-          for (let i = 1; i < artistGenres.length; i++) {
+          for (let i = 0; i < artistGenres.length; i++) {
             const genreName = artistGenres[i];
             let genreMatch = data.genres.find(g => g.name.toLowerCase() === genreName.toLowerCase());
             let genreId;

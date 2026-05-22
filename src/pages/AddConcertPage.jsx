@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { X } from 'lucide-react';
+import { X, Wand2 } from 'lucide-react';
 import { SpotifyArtistAutocomplete } from '../components/SpotifyArtistAutocomplete';
 import { TicketmasterAutocomplete } from '../components/TicketmasterAutocomplete';
 import { fetchArtistGenres } from '../utils/musicBrainz';
@@ -106,7 +106,7 @@ export const AddConcertPage = ({ data, refreshData }) => {
 
   const handleSelectTicketmasterEvent = (event) => {
     setFormData(prev => ({ ...prev, name: event.name }));
-    
+
     if (event.date) {
       setFormData(prev => ({ ...prev, date: event.date }));
     }
@@ -130,7 +130,7 @@ export const AddConcertPage = ({ data, refreshData }) => {
     if (event.venue) {
       const cleanName = event.venue.name.trim().toLowerCase();
       const match = data.venues.find(v => v.name.toLowerCase() === cleanName);
-      
+
       let mappedCountry = event.venue.country || userDefaultCountry;
       if (mappedCountry === 'US' || mappedCountry.toLowerCase() === 'united states of america') mappedCountry = 'USA';
       else if (mappedCountry === 'GB' || mappedCountry.toLowerCase() === 'great britain') mappedCountry = 'UK';
@@ -225,7 +225,7 @@ export const AddConcertPage = ({ data, refreshData }) => {
         let artistId;
         const artistName = artistObj.name;
         let artistGenres = artistObj.genres || [];
-        
+
         // Attempt to find existing artist in active cache (case insensitive)
         const match = data.artists.find(a => a.name.toLowerCase() === artistName.toLowerCase());
 
@@ -234,47 +234,47 @@ export const AddConcertPage = ({ data, refreshData }) => {
         } else {
           // Fire creation of brand new artist
           artistId = crypto.randomUUID();
-          
+
           const mbGenres = await fetchArtistGenres(artistName);
           if (mbGenres.length > 0) {
             artistGenres = mbGenres;
           }
 
           let primaryGenreId = null;
-          
+
           if (artistGenres.length > 0) {
-             const primaryGenreName = artistGenres[0];
-             let genreMatch = data.genres.find(g => g.name.toLowerCase() === primaryGenreName.toLowerCase());
-             if (!genreMatch) {
-                const newGenreId = crypto.randomUUID();
-                newGenresToInsert.push({ id: newGenreId, name: primaryGenreName });
-                primaryGenreId = newGenreId;
-                data.genres.push({ id: newGenreId, name: primaryGenreName });
-             } else {
-                primaryGenreId = genreMatch.id;
-             }
+            const primaryGenreName = artistGenres[0];
+            let genreMatch = data.genres.find(g => g.name.toLowerCase() === primaryGenreName.toLowerCase());
+            if (!genreMatch) {
+              const newGenreId = crypto.randomUUID();
+              newGenresToInsert.push({ id: newGenreId, name: primaryGenreName });
+              primaryGenreId = newGenreId;
+              data.genres.push({ id: newGenreId, name: primaryGenreName });
+            } else {
+              primaryGenreId = genreMatch.id;
+            }
           }
 
-          newArtistsToInsert.push({ 
-             id: artistId, 
-             name: artistName,
-             primary_genre_id: primaryGenreId,
-             spotify_listeners: artistObj.followers || null
+          newArtistsToInsert.push({
+            id: artistId,
+            name: artistName,
+            primary_genre_id: primaryGenreId,
+            spotify_listeners: artistObj.followers || null
           });
-          
+
           // Secondary genres (bridge)
           for (let i = 1; i < artistGenres.length; i++) {
-             const genreName = artistGenres[i];
-             let genreMatch = data.genres.find(g => g.name.toLowerCase() === genreName.toLowerCase());
-             let genreId;
-             if (!genreMatch) {
-                genreId = crypto.randomUUID();
-                newGenresToInsert.push({ id: genreId, name: genreName });
-                data.genres.push({ id: genreId, name: genreName });
-             } else {
-                genreId = genreMatch.id;
-             }
-             genreBridgeInserts.push({ artist_id: artistId, genre_id: genreId });
+            const genreName = artistGenres[i];
+            let genreMatch = data.genres.find(g => g.name.toLowerCase() === genreName.toLowerCase());
+            let genreId;
+            if (!genreMatch) {
+              genreId = crypto.randomUUID();
+              newGenresToInsert.push({ id: genreId, name: genreName });
+              data.genres.push({ id: genreId, name: genreName });
+            } else {
+              genreId = genreMatch.id;
+            }
+            genreBridgeInserts.push({ artist_id: artistId, genre_id: genreId });
           }
         }
 
@@ -283,21 +283,21 @@ export const AddConcertPage = ({ data, refreshData }) => {
 
       // Insert all new genres at once
       if (newGenresToInsert.length > 0) {
-         const uniqueGenres = Array.from(new Set(newGenresToInsert.map(g => g.name)))
-           .map(name => newGenresToInsert.find(g => g.name === name));
-         const { error: gErr } = await supabase.from('genres').insert(uniqueGenres);
-         if (gErr) throw new Error("Failed to insert genres");
+        const uniqueGenres = Array.from(new Set(newGenresToInsert.map(g => g.name)))
+          .map(name => newGenresToInsert.find(g => g.name === name));
+        const { error: gErr } = await supabase.from('genres').insert(uniqueGenres);
+        if (gErr) throw new Error("Failed to insert genres");
       }
 
       if (newArtistsToInsert.length > 0) {
-         const { error: aErr } = await supabase.from('artists').insert(newArtistsToInsert);
-         if (aErr) throw new Error("Failed to insert new artists");
+        const { error: aErr } = await supabase.from('artists').insert(newArtistsToInsert);
+        if (aErr) throw new Error("Failed to insert new artists");
       }
 
       // Insert genre bridges
       if (genreBridgeInserts.length > 0) {
-         const { error: gbErr } = await supabase.from('artist_genre_bridge').insert(genreBridgeInserts);
-         if (gbErr) throw new Error("Failed to insert artist genres");
+        const { error: gbErr } = await supabase.from('artist_genre_bridge').insert(genreBridgeInserts);
+        if (gbErr) throw new Error("Failed to insert artist genres");
       }
 
       // 3. Process all attendee tagging relationships
@@ -336,8 +336,8 @@ export const AddConcertPage = ({ data, refreshData }) => {
   return (
     <div style={styles.page}>
       <header style={styles.header}>
-        <h1 style={styles.pageTitle}>Log New Concert</h1>
-        <p style={styles.pageSubtitle}>Immortalize a live memory into the dashboard</p>
+        <h1 style={styles.pageTitle}>Add Concert</h1>
+        <p style={styles.pageSubtitle}>Log a show and add it to your concert history.</p>
       </header>
 
       <main style={styles.main}>
@@ -351,7 +351,7 @@ export const AddConcertPage = ({ data, refreshData }) => {
             <div style={styles.formGroup}>
               <label style={styles.label}>Event Title (Festival/Headliner) <span style={styles.required}>*</span></label>
               <div style={{ display: 'flex', width: '100%', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: '#fff', position: 'relative' }}>
-                <TicketmasterAutocomplete 
+                <TicketmasterAutocomplete
                   value={formData.name}
                   onChange={(val) => setFormData(prev => ({ ...prev, name: val }))}
                   onSelectEvent={handleSelectTicketmasterEvent}
@@ -359,6 +359,10 @@ export const AddConcertPage = ({ data, refreshData }) => {
                   style={{ ...styles.input, border: 'none', borderRadius: 0, outline: 'none' }}
                 />
               </div>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <Wand2 size={12} color="#D79334" />
+                Selecting from Ticketmaster will auto-fill date, venue, and lineup
+              </span>
             </div>
 
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
@@ -520,7 +524,7 @@ export const AddConcertPage = ({ data, refreshData }) => {
           <div style={styles.section}>
             <h3 style={styles.sectionHeader}>Lineup &amp; People</h3>
 
-            <div style={{ ...styles.formGroup, padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <div style={styles.formGroup}>
               <label style={{ ...styles.label, display: 'flex', justifyContent: 'space-between' }}>
                 <span>Artist Lineup <span style={styles.required}>*</span></span>
                 <span style={{ fontSize: '0.75rem', fontWeight: '400' }}>Hit Enter to add</span>
@@ -535,8 +539,8 @@ export const AddConcertPage = ({ data, refreshData }) => {
                   </div>
                 ))}
                 <div style={{ display: 'flex', alignItems: 'center', width: '100%', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
-                  <SpotifyArtistAutocomplete 
-                    onSelectArtist={handleSelectArtist} 
+                  <SpotifyArtistAutocomplete
+                    onSelectArtist={handleSelectArtist}
                     style={tagStyles.tagInput}
                     placeholder={selectedArtists.length === 0 ? "Search Spotify for an artist..." : "Add another act..."}
                   />
@@ -544,7 +548,7 @@ export const AddConcertPage = ({ data, refreshData }) => {
               </div>
             </div>
 
-            <div style={{ ...styles.formGroup, padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <div style={styles.formGroup}>
               <label style={{ ...styles.label, display: 'flex', justifyContent: 'space-between' }}>
                 <span>Attendees (Optional)</span>
                 <span style={{ fontSize: '0.75rem', fontWeight: '400' }}>Hit Enter to add friends</span>
@@ -656,14 +660,14 @@ const styles = {
   header: { marginBottom: '2rem' },
   pageTitle: { fontSize: '2rem', fontWeight: 'bold', margin: '0 0 0.5rem 0', color: 'var(--text-primary)' },
   pageSubtitle: { margin: 0, color: 'var(--text-muted)' },
-  formContainer: { backgroundColor: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '2rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '2rem' },
-  section: { display: 'flex', flexDirection: 'column', gap: '1.5rem' },
-  sectionHeader: { fontSize: '1.25rem', fontWeight: '600', color: 'var(--text-primary)', margin: '0 0 0.5rem 0', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' },
+  formContainer: { display: 'flex', flexDirection: 'column', gap: '2rem' },
+  section: { display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1.5rem', backgroundColor: '#F8F7F4', borderRadius: '8px', border: '1px solid #e2e8f0' },
+  sectionHeader: { fontSize: '1.25rem', fontWeight: '600', color: 'var(--text-primary)', margin: '0 0 0.5rem 0' },
   errorBanner: { padding: '1rem', backgroundColor: '#ffebee', color: '#c62828', borderRadius: '6px', border: '1px solid #c62828', fontSize: '0.875rem' },
   formGroup: { display: 'flex', flexDirection: 'column', gap: '0.5rem' },
   rowGroup: { display: 'flex', gap: '1.5rem', flexWrap: 'wrap' },
   label: { fontSize: '0.875rem', fontWeight: '500', color: 'var(--text-secondary)' },
-  required: { color: '#d32f2f' },
+  required: { color: '#D79334' },
   input: { padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '1rem', fontFamily: 'inherit', backgroundColor: '#fafafa', color: 'var(--text-primary)', outline: 'none', transition: 'border-color 0.2s' },
   checkboxGroup: { display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem' },
   checkbox: { width: '18px', height: '18px', accentColor: 'var(--accent-color)' },

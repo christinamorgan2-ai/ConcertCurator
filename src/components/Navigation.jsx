@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ListMusic, MapPin, Mic2, Users, Tags, Settings, LogOut, LogIn, Globe, Menu, Info } from 'lucide-react';
+import { LayoutDashboard, ListMusic, MapPin, Mic2, Users, Tags, Settings, LogOut, LogIn, Globe, Menu, Info, Network } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
 export const Navigation = ({ session, guestMode, onExitGuestMode }) => {
@@ -75,6 +75,7 @@ export const Navigation = ({ session, guestMode, onExitGuestMode }) => {
             {navItem("/artists", Mic2, "Artists", guestMode)}
             {navItem("/attendees", Users, "Attendees", guestMode)}
             {navItem("/genres", Tags, "Genres", guestMode)}
+            {navItem("/music-map", Network, "Music Map", guestMode)}
           </div>
 
           <div style={styles.navGroup}>

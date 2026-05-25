@@ -54,8 +54,8 @@ export const fetchArtistMetadata = async (artistName) => {
       if (rgResponse.ok) {
         const rgData = await rgResponse.json();
         if (rgData && rgData['release-groups']) {
-          // Filter for Album, EP, Single
-          const validTypes = ['Album', 'EP', 'Single'];
+          // Filter for Album only
+          const validTypes = ['Album'];
           
           const years = rgData['release-groups']
             .filter(rg => validTypes.includes(rg['primary-type']))

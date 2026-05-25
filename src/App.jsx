@@ -18,6 +18,8 @@ import { SettingsPage } from './pages/SettingsPage';
 import { CommunityPage } from './pages/CommunityPage';
 import { PublicDashboardPage } from './pages/PublicDashboardPage';
 import { ContactPage } from './pages/ContactPage';
+import { MusicMapPage } from './pages/MusicMapPage';
+import { PublicMusicMapPage } from './pages/PublicMusicMapPage';
 
 // Simple Route Guard
 const ProtectedRoute = ({ session, guestMode, guestAllowed, children }) => {
@@ -115,12 +117,14 @@ function App() {
             <Route path="/artists" element={<ProtectedRoute session={session} guestMode={guestMode} guestAllowed={false}><ArtistsPage data={data} refreshData={refreshData} /></ProtectedRoute>} />
             <Route path="/attendees" element={<ProtectedRoute session={session} guestMode={guestMode} guestAllowed={false}><AttendeesPage data={data} refreshData={refreshData} /></ProtectedRoute>} />
             <Route path="/genres" element={<ProtectedRoute session={session} guestMode={guestMode} guestAllowed={false}><GenresPage data={data} refreshData={refreshData} /></ProtectedRoute>} />
+            <Route path="/music-map" element={<ProtectedRoute session={session} guestMode={guestMode} guestAllowed={false}><MusicMapPage data={data} /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute session={session} guestMode={guestMode} guestAllowed={false}><SettingsPage data={data} refreshData={refreshData} /></ProtectedRoute>} />
             
             <Route path="/add" element={<ProtectedRoute session={session} guestMode={guestMode} guestAllowed={false}><AddConcertPage data={data} refreshData={refreshData} /></ProtectedRoute>} />
             
             <Route path="/community" element={<ProtectedRoute session={session} guestMode={guestMode} guestAllowed={true}><CommunityPage /></ProtectedRoute>} />
             <Route path="/community/:id" element={<ProtectedRoute session={session} guestMode={guestMode} guestAllowed={true}><PublicDashboardPage /></ProtectedRoute>} />
+            <Route path="/community/:id/map" element={<ProtectedRoute session={session} guestMode={guestMode} guestAllowed={true}><PublicMusicMapPage /></ProtectedRoute>} />
             <Route path="/contact" element={<ContactPage />} />
           </Routes>
         </div>

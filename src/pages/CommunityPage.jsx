@@ -73,8 +73,21 @@ export const CommunityPage = () => {
                 <Users size={24} color="#475569" />
               </div>
               <div style={{flex: 1}}>
-                <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.1rem', color: '#0f172a' }}>{profile.profile_name}</h3>
-                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>View Dashboard →</span>
+                <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', color: '#0f172a' }}>{profile.profile_name}</h3>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); navigate(`/community/${profile.user_id}`); }} 
+                    style={{ fontSize: '0.8rem', color: '#3b82f6', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontWeight: '600' }}
+                  >
+                    View Dashboard →
+                  </button>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); navigate(`/community/${profile.user_id}/map`); }} 
+                    style={{ fontSize: '0.8rem', color: '#3b82f6', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontWeight: '600' }}
+                  >
+                    View Music Map →
+                  </button>
+                </div>
               </div>
             </div>
           ))}

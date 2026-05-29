@@ -25,16 +25,10 @@ export const TicketmasterAutocomplete = ({ onSelectEvent, placeholder, style, va
       return;
     }
 
-    const apiKey = import.meta.env.VITE_TICKETMASTER_API_KEY;
-    if (!apiKey) {
-      console.warn("Missing VITE_TICKETMASTER_API_KEY in .env.local");
-      return;
-    }
-
     const timer = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`https://app.ticketmaster.com/discovery/v2/events.json?keyword=${encodeURIComponent(query)}&apikey=${apiKey}&size=30&sort=relevance,desc`);
+        const response = await fetch(`/api/ticketmaster?keyword=${encodeURIComponent(query)}&size=30&sort=relevance,desc`);
         if (!response.ok) throw new Error('Search failed');
         const data = await response.json();
         

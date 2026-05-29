@@ -78,6 +78,54 @@ const vercelApiMock = () => ({
         res.end(JSON.stringify({ error: error.message }));
       }
     });
+
+    server.middlewares.use('/api/ticketmaster', async (req, res) => {
+      // Load all env vars including .env.local
+      const env = loadEnv('', process.cwd(), '');
+      const { TICKETMASTER_API_KEY } = env;
+
+      if (!TICKETMASTER_API_KEY) {
+        res.statusCode = 500;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ error: 'Missing Ticketmaster API credentials' }));
+        return;
+      }
+
+      try {
+        const url = new URL(req.originalUrl || req.url, `http://${req.headers.host}`);
+        const keyword = url.searchParams.get('keyword');
+        const size = url.searchParams.get('size') || '30';
+        const sort = url.searchParams.get('sort') || 'relevance,desc';
+
+        if (!keyword) {
+          res.statusCode = 400;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: 'Missing keyword query parameter' }));
+          return;
+        }
+
+        const ticketmasterUrl = `https://app.ticketmaster.com/discovery/v2/events.json?keyword=${encodeURIComponent(keyword)}&apikey=${encodeURIComponent(TICKETMASTER_API_KEY)}&size=${encodeURIComponent(size)}&sort=${encodeURIComponent(sort)}`;
+        const dataResponse = await fetch(ticketmasterUrl);
+
+        if (!dataResponse.ok) {
+          const errorText = await dataResponse.text();
+          res.statusCode = dataResponse.status || 500;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: `Ticketmaster API Error: ${errorText}` }));
+          return;
+        }
+
+        const data = await dataResponse.json();
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify(data));
+      } catch (error) {
+        console.error('Ticketmaster Proxy Error:', error);
+        res.statusCode = 500;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ error: error.message }));
+      }
+    });
   }
 });
 

@@ -5,7 +5,9 @@ export const TicketmasterAutocomplete = ({ onSelectEvent, placeholder, style, va
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [isSmallScreen, setIsSmallScreen] = useState(false);
   const dropdownRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -15,6 +17,28 @@ export const TicketmasterAutocomplete = ({ onSelectEvent, placeholder, style, va
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 640px)');
+    const handleScreenChange = () => setIsSmallScreen(mql.matches);
+
+    handleScreenChange();
+    if (mql.addEventListener) {
+      mql.addEventListener('change', handleScreenChange);
+    } else {
+      mql.addListener(handleScreenChange);
+    }
+    window.addEventListener('resize', handleScreenChange);
+
+    return () => {
+      if (mql.removeEventListener) {
+        mql.removeEventListener('change', handleScreenChange);
+      } else {
+        mql.removeListener(handleScreenChange);
+      }
+      window.removeEventListener('resize', handleScreenChange);
+    };
   }, []);
 
   useEffect(() => {
@@ -113,6 +137,7 @@ export const TicketmasterAutocomplete = ({ onSelectEvent, placeholder, style, va
     <div ref={dropdownRef} style={{ position: 'relative', width: '100%', display: 'flex', alignItems: 'center' }}>
       <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px' }} />
       <input
+        ref={inputRef}
         type="text"
         value={value || ''}
         onChange={(e) => {
@@ -135,8 +160,23 @@ export const TicketmasterAutocomplete = ({ onSelectEvent, placeholder, style, va
           position: 'absolute', top: '100%', left: 0, right: 0, 
           backgroundColor: '#ffffff', border: '1px solid #e2e8f0', 
           borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', 
-          marginTop: '8px', zIndex: 50, maxHeight: '300px', overflowY: 'auto'
+          marginTop: '8px', zIndex: 50, maxHeight: isSmallScreen ? '55vh' : '300px', overflowY: 'auto',
+          minHeight: '120px', padding: isSmallScreen ? '0.75rem' : '0'
         }}>
+          {isSmallScreen && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                style={{
+                  background: 'transparent', border: 'none', color: '#2563eb', fontWeight: 600,
+                  cursor: 'pointer', fontSize: '0.95rem', padding: '0.25rem 0.5rem'
+                }}
+              >
+                Close
+              </button>
+            </div>
+          )}
           {value.trim() && !isLoading && (
             <div
               onClick={() => { setIsOpen(false); }}

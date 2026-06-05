@@ -75,7 +75,7 @@ export const PublicMusicMapPage = () => {
         </p>
       </div>
 
-      <div style={styles.controlsCard}>
+      <div className="controls-card" style={styles.controlsCard}>
         <div style={styles.controlGroup}>
           <label style={styles.label}>
             Node Threshold (Min frequency: {nodeThreshold})
@@ -102,7 +102,7 @@ export const PublicMusicMapPage = () => {
             style={styles.slider}
           />
         </div>
-        <div style={styles.legend}>
+        <div className="legend-container" style={styles.legend}>
           <div style={styles.legendItem}>
             <div style={{ ...styles.legendCircle, width: '12px', height: '12px' }}></div>
             <span>Node Size = Genre Frequency</span>

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { sharedTableStyles as styles } from './ConcertsPage';
-import { Edit2, Save, X, Trash2, RefreshCw } from 'lucide-react';
+import { Edit2, Save, X, Trash2, RefreshCw, Info } from 'lucide-react';
 import { SpotifyArtistAutocomplete } from '../components/SpotifyArtistAutocomplete';
 import { fetchArtistMetadata } from '../utils/musicBrainz';
 
@@ -445,7 +445,17 @@ export const ArtistsPage = ({ data, refreshData }) => {
             <thead>
               <tr>
                 <th style={styles.th}>Artist</th>
-                <th style={styles.th}>Primary Genre</th>
+                <th style={styles.th}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span>Primary Genre</span>
+                    <span className="tooltip-container">
+                      <Info size={14} style={{ color: '#94a3b8', cursor: 'help' }} />
+                      <span className="tooltip-text">
+                        Primary Genres can be added to your dropdown through the Genres page or automatically by syncing to MusicBrainz
+                      </span>
+                    </span>
+                  </div>
+                </th>
                 <th style={styles.th}>All Genres</th>
 
                 <th style={styles.th}>Concerts Logged</th>

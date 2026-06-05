@@ -8,7 +8,7 @@ Welcometo Concert Curator my passion project that helps me keep track of all the
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 ## Environment Variables
 
-This project reads sensitive configuration from environment variables rather than hard-coding values into source.
+This project reads sensitive configuration from environment variables rather than hard-coding values into source (naturally).
 
 Required variables for local development:
 
@@ -20,11 +20,7 @@ Required variables for local development:
 
 Create a `.env.local` file at the project root with these values, and keep `.env.local` out of source control.
 
-If you need to seed the database from `seed_supabase.js`, set `SUPABASE_URL` and `SUPABASE_ANON_KEY` in your shell or use the same values as `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`.
-Currently, two official plugins are available:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
 ## React Compiler
 

@@ -15,8 +15,7 @@ export const buildGenreNetworkData = (data, nodeThreshold = 1, edgeThreshold = 1
     const normalizedName = g.name.toLowerCase().trim();
     if (!normalizedGenreIdMap[normalizedName]) {
       normalizedGenreIdMap[normalizedName] = gId;
-      // Capitalize first letter of each word for display
-      genreNameMap[gId] = normalizedName.replace(/\b\w/g, l => l.toUpperCase());
+      genreNameMap[gId] = normalizedName;
     }
     genreMap[gId] = normalizedGenreIdMap[normalizedName];
   });

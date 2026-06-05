@@ -5,21 +5,18 @@ export const ContactPage = () => {
   return (
     <div style={styles.page}>
       <div style={styles.container}>
-        <h1 style={styles.title}>About & Contact</h1>
+        <h1 style={styles.title}>Contact</h1>
         <p style={styles.paragraph}>
-          Concert Curator is a passion project built to help music lovers track, explore, and visualize their live music experiences across concerts, artists, venues, genres, and attendees.
+          Have questions, suggestions, or feedback about Concert Curator? We'd love to hear from you.
         </p>
         <p style={styles.paragraph}>
-
-          For questions, suggestions, data-related inquiries, or integration concerns, you can contact the developer directly on LinkedIn.
+          For technical questions, data-related inquiries, or feature requests, feel free to reach out directly on LinkedIn.
         </p>
 
         <div style={styles.card}>
           <h2 style={styles.cardTitle}>Get In Touch</h2>
           <p style={styles.cardText}>
-            I'd love to hear from other music fans, data people, developers, or anyone with feedback about the project.
-
-            For technical or data-source questions, please reach out via LinkedIn.
+            I'd love to hear from other music fans, data analysts, developers, or anyone with feedback about the project.
           </p>
 
           <a
@@ -29,7 +26,7 @@ export const ContactPage = () => {
             style={styles.button}
           >
             <ExternalLink size={20} />
-            Connect with Christina Morgan on LinkedIn
+            Connect on LinkedIn
           </a>
         </div>
       </div>

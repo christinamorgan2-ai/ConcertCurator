@@ -18,6 +18,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { CommunityPage } from './pages/CommunityPage';
 import { PublicDashboardPage } from './pages/PublicDashboardPage';
 import { ContactPage } from './pages/ContactPage';
+import { FAQPage } from './pages/FAQPage';
 import { MusicMapPage } from './pages/MusicMapPage';
 import { PublicMusicMapPage } from './pages/PublicMusicMapPage';
 
@@ -125,6 +126,7 @@ function App() {
             <Route path="/community" element={<ProtectedRoute session={session} guestMode={guestMode} guestAllowed={true}><CommunityPage /></ProtectedRoute>} />
             <Route path="/community/:id" element={<ProtectedRoute session={session} guestMode={guestMode} guestAllowed={true}><PublicDashboardPage /></ProtectedRoute>} />
             <Route path="/community/:id/map" element={<ProtectedRoute session={session} guestMode={guestMode} guestAllowed={true}><PublicMusicMapPage /></ProtectedRoute>} />
+            <Route path="/faq" element={<FAQPage />} />
             <Route path="/contact" element={<ContactPage />} />
           </Routes>
         </div>
